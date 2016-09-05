@@ -89,8 +89,56 @@ We propose several best practices for researchers using PRNGs, including the wid
 \end{abstract}
 
 \section{Introduction}
+Random sampling is one of the most fundamental tools in Statistics.
+It is used to conduct surveys, including opinion surveys, population surveys like the census, and litigation; 
+to run medical, agricultural, and marketing experiments; 
+quality control in industry and auditing in finance and elections;
+and countless other purposes.
+Simple random sampling refers to drawing $k \leq n$ items from a population of $n$ items,
+in such a way that each of ${n \choose k}$ subsets of size $k$ is equally likely.
+Many standard statistical methods assume that the sample is drawn this way, 
+or allocated between treatment and control groups this way
+(e.g. $k$ of $n$ subjects are assigned to treatment, and the remaining $n-k$ to control).
+
+\begin{itemize}
+\item We examine methods for drawing pseudo-random simple random samples. 
+We include a discussion of pseudo-random number generators (PRNGs) and 
+of algorithms used to select samples using PRNGs.
+Among other things, we find bounds on the number of samples that can be generated 
+using a variate of PRNGs, for a number of sampling algorithms. 
+We also consider how that affects the bias and uncertainty of estimates based on pseudo-random
+samples rather than on actual simple random samples.
+\item PRNGs considered include linear congruential generators (LCGs, including RANDU)
+and the Mersenne Twister. We discuss using cryptographic hash functions to generate PRNs.
+\item We conclude with recommendations for best practices using PRNGs to generate random samples.
+\end{itemize}
+
+
 
 \section{Background}
+\subsection{Definition of ``random'' numbers}
+Most computers lack the hardware needed to generate truly random numbers. 
+Instead, they use algorithms called pseudo-random number generators (PRNGs) to generate
+deterministic sequences from an initial ``seed,'' which generally can be set by the user,
+for instance to an externally generated random value.
+Each time a number is generated, the PRNG's ``state'' changes.
+
+Depending on the quality of the PRNG, the sequences behave more or less like sequences of random numbers.
+How does one gauge ``how random'' sequences from a PRNG are?
+A PRNG yields sequences of random numbers on the interval $[0, 1]$ or over the binary set $\{0, 1\}$.
+The sequences output by such PRNGs should be statistically indistinguishable from IID $U(0,1)$ sequences or
+IID Bernoulli$(1/2)$ sequences, respectively.
+The tests for the bit sequence case applies to the $U(0,1)$ case as well, because there is a one-to-one relationship
+between sequences of bits and integers.
+Namely, every sequence of $k$ bits corresponds to an integer on $0, 1, \dots, 2^k-1$, and scaling by $2^k$
+yields a unique value on $[0, 1)$. (cite L'Ecuyer, Simard)
+
+There are a multitude of ways to test the hypothesis that sequences from a PRNG are indistinguishable 
+from random sequences.
+\todo{list types of tests + citations: L'Ecuyer Simard TestU01 (2007),  Knuth (1969), Marsaglia DIEHARD tests (1968)}
+
+
+
 \subsection{RANDU and LCGs}
 \subsection{Stata software}
 \section{Instances of the problem}
