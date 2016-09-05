@@ -135,14 +135,101 @@ yields a unique value on $[0, 1)$. (cite L'Ecuyer, Simard)
 
 There are a multitude of ways to test the hypothesis that sequences from a PRNG are indistinguishable 
 from random sequences.
-\todo{list types of tests + citations: L'Ecuyer Simard TestU01 (2007),  Knuth (1969), Marsaglia DIEHARD tests (1968)}
+\todo{list types of tests + citations: L'Ecuyer Simard TestU01 (2007),  Knuth (1969), Marsaglia DIEHARD tests (1968), NIST tests
+
+\begin{itemize}
+\item Two notions of uniformity: 1) uniformly distributed within a sequence with a fixed starting state, 2) the set of sequences of length $t$ that can be hit by the PRNG should be uniformly distributed among the set of all sequences of length $t$ -- this gets at the SRS problem
+\end{itemize}
+}
+
+\subsection{Sampling algorithms}
+A simple random sample of size $k$ from a population of size $n$ is a sample drawn in such a way that each of the ${n \choose k}$ possible subsets of size $k$ is equally likely.
+Given a good source of randomness, there are many ways to operationalize this definition to draw simple random samples.
+\subsubsection{Algorithm PIKK (permute indices and keep $k$)}
+One basic approach is like shuffling a deck of $n$ cards, then dealing the top $k$: permute the population at random, then take the first $k$ elements of the permutation to be the sample.
+There are a number of standard ways to generate a random permutation -- i.e., to shuffle the deck.
+If we had a way to generate independent, identically distributed (iid) $U[0,1]$ random numbers, we could sample $k$ out of $n$ as follows:
+\todo{create an algorithm environment}
+Algorithm PIKK
+\begin{itemize}
+\item assign iid $U[0,1]$ numbers to the $n$ elements of the population
+\item the sample consists of the $k$ items assigned the smallest random numbers (break ties randomly)
+\item amounts to generating a random permutation of the population, then taking first $k$.
+\item if the numbers really are iid, every permutation is equally likely, and it follows that the first $k$ are an SRS
+requires $n$ random numbers (and sorting)
+\end{itemize}
+
+This algorithm is inefficient: it requires the generation of $n$ random numbers and then a sorting operation.
+
+\subsubsection{Shuffle}
+There are more efficient ways to generate a random permutation than assigning a number to each element and sorting.
+One example is the "Fisher-Yates shuffle" or "Knuth shuffle" (Knuth attributes it to Durstenfeld).
+
+\begin{verbatim}
+Algorithm Fisher-Yates-Knuth-Durstenfeld shuffle (backwards version)
+for i=1, ..., n-1:
+    J <- random integer uniformly distributed on {i, ..., n}
+    (a[J], a[i]) <- (a[i], a[J])
+\end{verbatim}
+
+This algorithm requires the ability to generate independent random integers on various ranges, but doesn't require sorting.
+There is also a version suitable for streaming, i.e. generating a random permutation of a list that has an (initially) unknown number of elements.
+
+\begin{verbatim}
+Algorithm Fisher-Yates-Knuth-Durstenfeld shuffle (streaming version)
+i <- 0
+a = []
+while there are records left:
+    i <- i+1
+    J <- random integer uniformly distributed on {1, ..., i}
+    if J < i:
+        a[i] <- a[J]
+        a[J] <- next record
+    else:
+        a[i] <- next record
+
+\end{verbatim}
+
+\begin{proof}[Proof that the streaming shuffle works]
+We prove by induction. The base case $i=1$ is trivial.
+At stage $i$, $i>1$, suppose that all $(i-1)!$ permutations of $\{1, 2, \dots, i-1\}$ are equally likely.
+$J$ may take on $i-1$ distinct values less than $i$, and the swapping procedure thus yields $(i-1)! \times (i-1)$
+possible distinct permutations.
+If $J = i$, then there is no swap and $(i-1)$ possible distinct permutations.
+In total, there are $(i-1)! \times (i-1 + 1) = i!$ possible distinct permutations, and all are equally likely because
+all values of $J$ and permutations of the first $(i-1)$ elements were equally likely.
+\end{proof}
 
 
+\subsubsection{Algorithm \texttt{Random\_Sample} from Cormen et al \todo{cite}}
+This is a recursive algorithm that requires only $k$ random integers and does not require sorting.
+\todo{turn into pseudocode; prove by recursion that the method works}
+\begin{verbatim}
+def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
+    if k==0:
+        return set()
+    else:
+        S = Random_Sample(n-1, k-1)
+        i = gen.randint(1,n) 
+        if i in S:
+            S = S.union([n])
+        else:
+            S = S.union([i])
+    return S
+\end{verbatim}
+
+\section{Instances of problems}
+The sampling algorithms in the previous section rely on the ability to generate random integers uniformly distributed 
+on various ranges.
+In this section, we illustrate several known failures in common software packages.
+ 
 
 \subsection{RANDU and LCGs}
+
 \subsection{Stata software}
-\section{Instances of the problem}
 \subsection{Random integer generation in R}
+
+\section{Results}
 \subsection{Pigeonhole arguments}
 \subsection{Simulations showing bias}
 \section{Hash-function based RNGs}
