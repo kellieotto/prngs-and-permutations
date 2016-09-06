@@ -24,6 +24,8 @@
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{assumption}{Assumption}
 
 \newcommand{\beq}{\begin{equation}}
@@ -80,7 +82,7 @@ Most statisticians take for granted that the software they use ``does the right 
 producing samples that can be treated as if they are SRSs.
 In fact, the PRNG algorithm and the algorithm for drawing samples using the PRNG matter
 enormously.
-Using basic counting principles, we show that some widely used methods cannot generate all subsets of size $k$.
+Using basic counting principles, we show that some widely used methods cannot generate all SRSs of size $k$.
 In simulations, we demonstrate that the subsets that they do generate do not have equal frequencies, which
 introduces bias and makes uncertainty calculations meaningless.
 We compare the ``randomness'' and computational efficiency of commonly-used PRNGs to a PRNG 
@@ -283,7 +285,19 @@ Excel didn't allow the seed to be set so issues could not be replicated, but use
 \todo{cite McCullough, B.D., 2008. Microsoft Excel?s ?Not The Wichmann?Hill? random number generators}
 
 \subsubsection{Stata software}
-\todo{ summarize results from Ozier: "Perils of Simulation..."}
+Prior to April 2011, the \texttt{rnormal()} function in Stata 10 exhibited predictable behavior:
+95.1\% of the $2^{31}$ values that could be used to seed the PRNG resulted in first and second draws having the same sign.
+Resetting the seed too frequently, therefore, would cause this behavior to happen more frequently than if the 
+random values came from a true normal distribution.
+This is a case of ``burn-in'': some PRNGs require many advances in the state space before exhibiting ``random'' behavior.
+Resetting the seed frequently does not allow the PRNG this burn-in period.
+Stata uses the KISS algorithm to generate PRNs.
+KISS is a combination of an LCG with three other PRNGs, each with a different period.
+ \todo{describe KISS and cite Marsaglia}
+Resetting the seed in Stata updates the seed of the LCG, but not the other three PRNGs, so KISS will exhibit the same
+``numbers fall in the planes'' phenomenon as RANDU and other LCGs.
+\todo{cite Ozier: "Perils of Simulation..."}
+
 
 \subsubsection{Random integer generation in R}
 The sampling and permutation algorithms described above require $k$ or $n$ independent random integers
@@ -324,6 +338,21 @@ The maximum ratio of selection probabilities is
 \todo{is this proof right? seems wrong}
 
 For $m = 10^9$ and $w=32$, $1 + m 2^{-w} \approx 1.233$. That could easily matter.
+In R, one would generally use the function \texttt{sample(1:m, k, replace=FALSE)} to draw pseudo-random integers. 
+It seems that \texttt{sample()} uses the faulty $1 + \lfloor mX\rfloor$ approach.
+\todo{make absolute sure that this is what R does!!}
+\todo{illustrate with a figure}
+
+A better way to generate a (pseudo-)random integer on $\{1, \ldots m\}$ from a (pseudo-random) $w$-bit integer in practice is as follows:
+\begin{enumerate}
+\item Set $\mu = \log_2(m-1)$.
+\item Define a $w$-bit mask consisting of $\mu$ bits set to 1 and $(w-\mu)$ bits set to zero.
+\item Generate a random $w$-bit integer $Y$.
+\item Define $y$ to be the bitwise and of $y$ and the mask.
+\item If $y \le m-1$, output $x = y+1$; otherwise, return to step 3.
+\end{enumerate}
+This is how random integers are generated in \texttt{numpy} by \texttt{numpy.random.randint()}. 
+However, \texttt{numpy.random.choice()} does something else that's biased: it finds the closest integer to $mX$.
 
 \subsection{The right way to generate PRNs}
 \subsubsection{xorShift}
@@ -331,8 +360,134 @@ For $m = 10^9$ and $w=32$, $1 + m 2^{-w} \approx 1.233$. That could easily matte
 \subsubsection{Methods based on cryptographic hash functions}
 
 \section{Results}
-\subsection{Pigeonhole arguments}
-\subsection{Simulations showing bias}
+\subsection{Possibility Bounds using the Pidgeon-Hole Principle}
+We now consider whether, in principle, a particular PRNG combined with a particular sampling algorithm could generate an SRS of size $k$ from a population of size $n$.
+We also consider whether a particular PRNG combined with an ``optimal'' sampling algorithm that minimized the number of random bits required to generate samples, rather than ``wasting'' random bits, could generate an SRS of size $k$ from a population of size $n$.
+
+
+\begin{lemma}[One output per state]
+If an algorithm uses at least one (entire) output of a PRNG, each state of the PRNG produces at most one distinct output of the algorithm.
+\end{lemma}
+
+For instance, an algorithm for drawing a sample might ``consume'' more than one state of the PRNG, but each initial state of the PRNG yields at most one sample.
+
+\begin{corollary}
+The number of distinct permutations of a set of $n$ items attainable by assigning a PRN to each element and sorting the result is less than or equal to the number of states of the PRNG.
+\end{corollary}
+
+See also R. Salfi, 1974, Compstat, 28?35, cited by Knuth, 3.4.2, p. 145: An LCG with modulus $m$ can generate at most $m$ permutations.
+
+\begin{corollary}
+The number of distinct samples of size $k$ of a set of $n$ items attainable by a method that uses at least one PRN state to select the sample is less than or equal to the number of states of the PRNG.
+\end{corollary}
+
+\begin{proposition}
+The algorithm that constructs permutations of a set of $n$ objects by assigning a PRN to each, then sorting, cannot construct all permutations of a set of $n$ objects if $n! > S$, where $S$ is the number of states of the PRNG. In particular, such an algorithm cannot construct all permutations of a set of 13 or more objects if the PRNG has $2^{32}$ states or fewer, and cannot construct all permutations of a set of 35 or more objects, if the PRNG has $2^{128}$ states or fewer. Such an algorithm cannot construct all permutations of a set of 2081 or more objects, if the PRNG is the Mersenne Twister.
+\end{proposition}
+
+
+\begin{proof}
+$$13! = 6,227,020,800 > 2^{32} = 4,294,967,296 > 12! = 479,001,600.$$
+$$ 35! = 1.03331479664 \times 10^{40} > 2^{128} \approx 3.402e+38 > 34! = 2.63130836934 \times 10^{35}. $$
+And $$ \ln (2081!) \ge 13823.83 > 13818.582 = \log(32 \times 623),$$
+where the first inequality in the last line follows from the Stirling's bound on the factorial:
+$$ e n^{n+1/2} e^{-n} \ge n! \ge \sqrt{2 \pi} n^{n+1/2} e^{-n}.$$
+\end{proof}
+
+Therefore, the usual proof that PIKK gives an SRS cannot apply for $n \ge 13$ if the PRNG has a 32-bit state space, nor for $n \ge 35$ if the PRNG has a 128-bit state space, nor for $n \ge 2081$ for the Mersenne Twister.
+To show that PIKK works for larger $n$ would require close analysis of the frequencies with which the permutations corresponding to distinct samples of size $k$ each occur, showing they are equal.
+However, if the PRNG can attain all $2^w$ states, then unless $2^w$ is divisible by ${n \choose k}$, it's impossible that there are an equal number of permutations corresponding to each sample of size $k$ from $n$. Since ${n \choose k }$ is generally not a power of 2, that's the usual situation.
+
+
+
+\begin{proposition}
+Any algorithm that constructs a subset of $k$ of $n$ objects by using at least one PRNG state per sample cannot construct all $n \choose k$ subsets if the number of states of the PRNG is less than $n \choose k$.
+\end{proposition}
+
+In particular, no PRNG with 32-bit or smaller state space can construct all samples of size $10$ from a population of size $47$ or more. 
+No PRNG with 128-bit or smaller state space can construct all samples of size $25$ from a population of size $366$ or more. 
+The Mersenne Twister cannot construct all samples of size 1000 from a population of size $3.8 \times 10^8$ or more.
+
+\begin{proof}
+Use raw calculation for PRNGs with 32-bit and 128-bit state and entropy bounds for the Mersenne Twister.
+\todo{flesh out}
+\end{proof}
+
+$3.8 \times 10^8$ is big, but not in the world of big data.
+
+\subsection{Theoretical bias}
+
+Suppose we take simple random samples of size $k$ from a population of size $n$.
+Denote the population by $\mathbf{X} = \{X_1, \dots, X_n\}$ and define the set of all possible samples by
+$\Omega = \{\omega : \omega \subset \mathbf{X}, \lvert \omega \rvert = k \}$.
+Let $F$ be the distribution over samples: that is, $F(\omega) = {n \choose k}^{-1}$ for all $\omega \in \Omega$.
+Define $\tilde{F}$ to be the empirical distribution of samples over a period of the PRNG.
+
+Suppose the PRNG never hits a subset $S \subseteq \Omega$.
+Mathematically, 
+$$S \equiv \left\lbrace \omega : \tilde{F}(\omega) = 0, F(\omega) = {n \choose k}^{-1}\right\rbrace.$$
+Furthermore, the PRNG may not generate the other possible samples on $S^c$ with equal probability.
+In practice, we know that a PRNG can only hit a certain \textit{number} of samples, but we don't know \textit{which ones}.
+\todo{For example, a PRNG with a 32-bit state space can generate no more than $2^{32}$ possible subsets of $k$ of $n$ objects, 
+so for $k = 10$ and $n = 47,$ $\nu \geq { 47 \choose 10} - 2^{32} = 883,099,455$.
+}
+If our particular PRNG omits $\nu$ samples, then define
+$$\mathcal{S} = \left\lbrace S : S \subseteq \Omega, \lvert S \rvert \geq \nu\right\rbrace.$$
+$\mathcal{S}$ contains all possible sets of samples that the PRNG could miss.
+
+Define $\mathcal{G} = \{ G: G(S) = 0, S \in \mathcal{S}\}$ to be the set of all distributions on $\Omega$ with at least $\nu$ samples with 0 probability.
+By definition, $\tilde{F} \in \mathcal{G}$.
+Conceptually, the distribution functions in $\mathcal{G}$ take the mass $F$ assigns to subsets $S$ and 
+redistributes it to other samples.
+This leads to a simple lower bound on the distance between $F$ and distributions in $\mathcal{G}$.
+
+\begin{lemma}
+For any $G \in \mathcal{G}$, $ \lVert F - G \rVert_1 \geq \frac{2\nu}{{n \choose k}}$
+\end{lemma}
+
+\begin{proof}
+Fix $S \in \mathcal{S}$ and choose some $G \in \mathcal{G}$ such that $G(S) = 0$.
+\begin{align*}
+\lVert F - G \rVert_1 &= \sum_{\omega \in \Omega} \lvert F(\omega) - G(\omega) \rvert \\
+&= \sum_{\omega \in S} \lvert F(\omega) - G(\omega) \rvert + \sum_{\omega \in S^c} \lvert F(\omega) - G(\omega) \rvert\\
+&= \sum_{\omega \in S} \lvert F(\omega) \rvert + \sum_{\omega \in S^c} \lvert F(\omega) - G(\omega) \rvert\\
+&= \frac{ \lvert S \rvert}{{n \choose k}}+ \sum_{\omega \in S^c} \lvert F(\omega) - G(\omega) \rvert\\
+&\geq \frac{ \lvert S \rvert}{{n \choose k}}+ \left\lvert\sum_{\omega \in S^c} \left( F(\omega) - G(\omega) \right)\right\rvert\\
+&= \frac{ \lvert S \rvert}{{n \choose k}}+ \left\lvert\sum_{\omega \in S^c} F(\omega) - 1 \right\rvert\\
+&= \frac{2 \lvert S \rvert}{{n \choose k}}
+\end{align*}
+
+Finally, $ \lVert F - G \rVert_1 \geq \inf_{S \in \mathcal{S}} \frac{2 \lvert S \rvert}{{n \choose k}} \geq \frac{2\nu}{{n \choose k}}$.
+\end{proof}
+
+\begin{proof}[another way]
+Fix $S$ and choose $G \in \mathcal{G}$ such that $G(S) = 0, G(\omega) > 0$ for $\omega \in S^c$.
+\begin{align*}
+\lVert F - G \rVert_1 &= \sum_{\omega \in \Omega} \lvert F(\omega) - G(\omega) \rvert \\
+&= \sum_{\omega \in S} \lvert F(\omega) - G(\omega) \rvert + \sum_{\omega \in S^c} \lvert F(\omega) - G(\omega) \rvert\\
+&= \sum_{\omega \in S} \lvert F(\omega) \rvert + \sum_{\omega \in S^c} \lvert F(\omega) - G(\omega) \rvert\\
+&= \frac{ \lvert S \rvert}{{n \choose k}}+ \sum_{\omega \in S^c} \lvert F(\omega) - (F(\omega) + \eps_\omega) \rvert\\
+\end{align*}
+
+\noindent where $\eps_\omega \in [ - {n \choose k}^{-1}, 1 - {n\choose k}^{-1}]$ and $\sum_{\omega \in S^c} \eps_\omega = \sum_{\omega \in S} F(\omega) =  \frac{ \lvert S \rvert}{{n \choose k}}$.
+NB this must be the case to ensure that $\sum_{\omega} G(\omega) = 1$, since
+$$\sum_{\omega} G(\omega) =\sum_{\omega\in S^c} G(\omega) = \sum_{\omega\in S^c} F(\omega) + \eps_\omega = \sum_{\omega\in S^c} F(\omega) + \sum_{\omega\in S} F(\omega) = 1.$$
+
+Therefore,
+\begin{align*}
+\lVert F - G \rVert_1 &= \frac{ \lvert S \rvert}{{n \choose k}}+ \sum_{\omega \in S^c} \lvert \eps_\omega \rvert\\
+&=  \frac{ \lvert S \rvert}{{n \choose k}}+ \sum_{\omega \in S} \lvert F(\omega) \\
+&= \frac{2 \lvert S \rvert}{{n \choose k}}
+\end{align*}
+\end{proof}
+
+\todo{relate this back to test statistics, e.g. the mean
+Then for any bounded function $\psi: \Omega \to \reals$ and for any $G \in \mathcal{G}$,
+
+$$\left\lvert \int \psi dG - \int \psi dF \right\rvert \leq \lVert F - G \rVert_1 \lVert \psi \rVert_\infty$$
+}
+
+\subsection{Simulations}
 \section{Hash-function based RNGs}
 \section{Discussion}
 \subsection{Best Practices}
