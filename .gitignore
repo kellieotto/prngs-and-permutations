@@ -82,3 +82,4 @@ _minted*
 
 # ipython
 .ipynb_checkpoints/
+Code/__pycache__/*
