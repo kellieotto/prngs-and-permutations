@@ -1,4 +1,11 @@
+"""
+To run docstring tests, run the following from the terminal:
+
+python sha256prng.py -v
+"""
+
 from __future__ import division
+import numpy as np
 # Import base class for PRNGs
 import random
 # Import library of cryptographic hash functions
@@ -17,16 +24,16 @@ RECIP_HASHLEN = 2**-HASHLEN
 class BaseRandom(random.Random):
     '''Random number generator base class'''
 
-    def __init__(self, x=None):
+    def __init__(self, seed=None):
         """Initialize an instance.
 
-        Optional argument x controls seeding, as for Random.seed().
+        Optional argument seed controls seeding, as for Random.seed().
         """
 
-        self.seed(x)
+        self.seed(seed)
 
 
-    def seed(self, a=None, counter=0):
+    def seed(self, baseseed=None, counter=0):
         """Initialize internal state from hashable object.
 
         None or no argument seeds from current time or from an operating
@@ -38,7 +45,7 @@ class BaseRandom(random.Random):
         the prng gets called.
         """
         # TODO: how to seed, see Ron's implementation
-        self.seed = a
+        self.baseseed = baseseed
         self.counter = counter
 
         
@@ -50,14 +57,14 @@ class BaseRandom(random.Random):
         
     
     def getstate(self):
-        return (self.seed, self.counter)
+        return (self.baseseed, self.counter)
         
     
     def setstate(self, state):
         """
         Set the state (seed and counter)
         """
-        (self.seed, self.counter) = (int(val) for val in state)
+        (self.baseseed, self.counter) = (int(val) for val in state)
     
     
     def jumpahead(self, n):
@@ -74,14 +81,26 @@ class BaseRandom(random.Random):
 class SHA256(BaseRandom):
     """
     PRNG based on the SHA-256 cryptographic hash function.
+    
+    >>> r = SHA256(5)
+    >>> r.getstate()
+    (5, 0)
+    >>> r.next()
+    >>> r.getstate()
+    (5, 1)
+    >>> r.jumpahead(5)
+    >>> r.getstate()
+    (5, 6)
     """
+    def random(self, size=None):
+        if size==None:
+            return self.nextRandom()
+        else:
+            return np.reshape(np.array([self.nextRandom() for i in np.arange(np.prod(size))]), size)
+            
     
-#    def __init__(self): # do a args/kwargs thing to set seed
-#        return None
-        
-    
-    def random(self):
-        hash_input = (str(self.seed) + "," + str(self.counter)).encode('utf-8')
+    def nextRandom(self):
+        hash_input = (str(self.baseseed) + "," + str(self.counter)).encode('utf-8')
         # Apply SHA-256, interpreting hex output as hexadecimal integer
         # to yield 256-bit integer (a python "long integer")
         hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
@@ -99,27 +118,18 @@ class SHA256(BaseRandom):
 ################################################################################
 
 # pseudo-random number generator
+def toy_example():
+    seed = 12345678901234567890
+    count = 0
+    hash_input = (str(seed) + "," + str(count)).encode('utf-8')
+    # Apply SHA-256, interpreting hex output as hexadecimal integer
+    # to yield 256-bit integer (a python "long integer")
+    hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
 
-seed = 12345678901234567890
-count = 0
-hash_input = (str(seed) + "," + str(count)).encode('utf-8')
-# Apply SHA-256, interpreting hex output as hexadecimal integer
-# to yield 256-bit integer (a python "long integer")
-hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
-
-print(hash_output*RECIP_HASHLEN)
-count += 1
+    print(hash_output*RECIP_HASHLEN)
+    count += 1
 
 
-# using the class above
-r = BaseRandom(5)
-r.getstate()
-# (5, 0)
-r.next()
-r.getstate()
-# (5, 1)
-r.jumpahead(5)
-r.getstate()
-# (5, 6)
-r.random()
-r.randint(5, 10)
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
