@@ -85,10 +85,9 @@ conductChisqTest <- function(counts){
 }
 
 
-distrNormalRange <- function(w, n){
-  # CDF of the range of n IID standard normals, evaluated at w
-  tmp <- integrate(function(x) dnorm(x)*(pnorm(x+w)-pnorm(x))^(n-1), lower = -Inf, upper = Inf)
-  n*tmp$value
+distrNormalRange <- function(w, k){
+  # CDF of the range of k IID standard normals, evaluated at w
+  tmp <- integrate(function(x) k*dnorm(x)*(pnorm(x+w)-pnorm(x))^(k-1), lower = -Inf, upper = Inf)
 }
 
 
