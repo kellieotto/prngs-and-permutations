@@ -73,7 +73,19 @@ class BaseRandom(random.Random):
         """
         self.counter += n        
 
-
+            
+    def __repr__(self):
+        """
+        >>> r = SHA256(5)
+        >>> repr(r)
+        'SHA256 PRNG with seed 5'
+        >>> str(r)
+        'SHA256 PRNG with seed 5'
+        """
+        stringrepr = self.__class__.__name__ + " PRNG with seed " + str(self.baseseed)
+        return stringrepr
+        
+        
 ################################################################################
 ############################## SHA-256 Class ###################################
 ################################################################################
@@ -92,26 +104,61 @@ class SHA256(BaseRandom):
     >>> r.getstate()
     (5, 6)
     """
+    
+#    def __init__(self, seed=None):
+#        self.__init__(seed=seed)
+#        self.hashfun = "SHA-256"
+        
+        
     def random(self, size=None):
+        """
+        Generate random numbers between 0 and 1.
+        size controls the number of ints generated. If size=None, just one is produced.
+        The following tests match the output of Ron's and Philip's implementations.
+
+        """
         if size==None:
-            return self.nextRandom()
+            return self.nextRandom()*RECIP_HASHLEN
         else:
-            return np.reshape(np.array([self.nextRandom() for i in np.arange(np.prod(size))]), size)
+            return np.reshape(np.array([self.nextRandom()*RECIP_HASHLEN for i in np.arange(np.prod(size))]), size)
             
     
     def nextRandom(self):
+        """
+        Generate the next hash value
+        
+        >>> r = SHA256(12345678901234567890)
+        >>> r.next()
+        >>> expected = int("4da594a8ab6064d666eab2bdf20cb4480e819e0c3102ca353de57caae1d11fd1", 16)
+        >>> r.nextRandom() == expected
+        True
+        """
         hash_input = (str(self.baseseed) + "," + str(self.counter)).encode('utf-8')
         # Apply SHA-256, interpreting hex output as hexadecimal integer
         # to yield 256-bit integer (a python "long integer")
         hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
         self.next()
-        return(hash_output*RECIP_HASHLEN)
+        return(hash_output)
         
+    
+    def randint(self, a, b, size=None):
+        """
+        Generate random integers between a and b, inclusive.
+        size controls the number of ints generated. If size=None, just one is produced.
+        The following tests match the output of Ron's and Philip's implementations.
+
+        >>> r = SHA256(12345678901234567890)
+        >>> r.randint(1, 1000, 5)
+        array([405, 426, 921, 929,  56])
+        """
+        assert a <= b, "lower and upper limits are switched"
         
-#    def __repr__(self):
-        """
-        what does this do?
-        """
+        if size==None:
+            return a + (self.nextRandom() % (b-a+1))
+        else:
+            return np.reshape(np.array([a + (self.nextRandom() % (b-a+1)) for i in np.arange(np.prod(size))]), size)
+
+        
         
 ################################################################################
 ############################## some sample code ################################
