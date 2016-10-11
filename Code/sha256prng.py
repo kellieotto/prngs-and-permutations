@@ -44,7 +44,6 @@ class BaseRandom(random.Random):
         a only gets changed at initiation. Counter gets updated each time
         the prng gets called.
         """
-        # TODO: how to seed, see Ron's implementation
         self.baseseed = baseseed
         self.counter = counter
 
@@ -103,6 +102,9 @@ class SHA256(BaseRandom):
     >>> r.jumpahead(5)
     >>> r.getstate()
     (5, 6)
+    >>> r.seed(22, 3)
+    >>> r.getstate()
+    (22, 3)
     """
     
 #    def __init__(self, seed=None):
@@ -116,6 +118,13 @@ class SHA256(BaseRandom):
         size controls the number of ints generated. If size=None, just one is produced.
         The following tests match the output of Ron's and Philip's implementations.
 
+        >>> r = SHA256(12345678901234567890)
+        >>> r.next()
+        >>> e1 = int("4da594a8ab6064d666eab2bdf20cb4480e819e0c3102ca353de57caae1d11fd1", 16)
+        >>> e2 = int("ae230ec16bee77f77c7378f4eb5d265d931665e29e8bbee7e733f58d3815d338", 16)
+        >>> expected = np.array([e1, e2]) * 2**-256
+        >>> r.random(2) == expected
+        array([ True,  True], dtype=bool)
         """
         if size==None:
             return self.nextRandom()*RECIP_HASHLEN
