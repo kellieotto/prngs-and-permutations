@@ -9,4 +9,4 @@ results/uniqueSampleSummary.csv results/firstOrderSummary.csv : $(RAW)
 	cd pyscripts; python summarizeSamples.py
 
 rawdata/FO_%.csv rawdata/US_%.csv: pyscripts/pythonRandomSamples_%.py
-	rm rawdata/FO_%.csv rawdata/US_%.csv; cd $(<D); python $(<F)
+	rm rawdata/FO_$*.csv rawdata/US_$*.csv; cd $(<D); python $(<F)

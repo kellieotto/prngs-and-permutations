@@ -60,6 +60,7 @@ for prngname in PRNGs:
                         
 d = {'Sample size' : kvalues,
      'Pop size' : nvalues,
+     'PRNG' : prng,
      'Pop Mean' : popMean,
      'Sample Mean' : sampleMean,
      'Bias' : bias,
