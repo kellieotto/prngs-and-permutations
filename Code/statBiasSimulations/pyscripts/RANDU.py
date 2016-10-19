@@ -5,9 +5,9 @@ import csv
 
 # Boilerplate stuff
 
-reps = int(10**3)
-n = [13, 30]
-k = [4, 10]
+reps = int(5 * 10**7) 
+n = [30]
+k = [2]
 ss = 100
 
 for nn in n:

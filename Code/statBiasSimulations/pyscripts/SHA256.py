@@ -5,9 +5,9 @@ from simulation_utils import *
 from sha256prng import SHA256
 # Boilerplate stuff
 
-reps = int(10**9)
-n = [13, 30]
-k = [4, 10]
+reps = int(5 * 10**7)
+n = [30]
+k = [2]
 seedvalues = [100, 233424280, 429496729]
 
 
