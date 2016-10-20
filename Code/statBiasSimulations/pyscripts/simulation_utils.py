@@ -11,6 +11,7 @@ from prng import lcgRandom
 from sample import PIKK
 
 def getEmpiricalDistr(randomObject, n, k, reps=10**7):
+    ''' Generates random samples using PIKK '''
     uniqueSamples = dict()
 
     for i in range(reps): # use range in python 3, xrange in python 2
@@ -22,6 +23,19 @@ def getEmpiricalDistr(randomObject, n, k, reps=10**7):
     return uniqueSamples
     
 
+def getEmpiricalDistr_MT_choice(randomObject, n, k, reps=10**7):
+    ''' Generates random samples using np.random.choice '''
+    uniqueSamples = dict()
+
+    for i in range(reps): # use range in python 3, xrange in python 2
+        sam = frozenset(randomObject.choice(n, k, replace=False))
+        if sam in uniqueSamples:
+            uniqueSamples[sam] += 1
+        else:
+            uniqueSamples[sam] = 1
+    return uniqueSamples
+    
+    
 def getItemCounts(uniqueSamples):
     itemCounts = dict()
     for u,v in uniqueSamples.items():

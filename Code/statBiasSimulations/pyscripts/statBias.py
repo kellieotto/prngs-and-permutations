@@ -70,7 +70,7 @@ def getSampleRange(x, uniqueSamples):
     return(sampleRange)
     
     
-PRNGs = ['RANDU', 'SD', 'MT', 'SHA256']
+PRNGs = ['RANDU', 'SD', 'MT', 'SHA256', 'MT_choice']
 prng = []
 seed = []
 nvalues = []
@@ -137,13 +137,13 @@ for prngname in PRNGs:
                         x = makeAdversarialPopulation(nn, [ss for ss in least_freq_sample])
                     popRange = popRange + [truePopRangeEV]
                     aveSampleRange = aveSampleRange + [getSampleRange(x, uniqueSampleCounts)]
-                    rangeBias = rangeBias + [truePopRangeEV - aveSampleRange[-1]]
+                    rangeBias = rangeBias + [aveSampleRange[-1] - truePopRangeEV]
                     rangeSE = rangeSE + [truePopRangeSE/math.sqrt(reps)]
                     rangeRelBias = rangeRelBias + [rangeBias[-1]/rangeSE[-1]]
                 
                     popVar = popVar + [truePopVarEV]
                     aveSampleVar = aveSampleVar + [getSampleVar(x, uniqueSampleCounts)]
-                    varBias = varBias + [truePopVarEV - aveSampleVar[-1]]
+                    varBias = varBias + [aveSampleVar[-1] - truePopVarEV]
                     varSE = varSE + [truePopVarSE/math.sqrt(reps)]
                     varRelBias = varRelBias + [varBias[-1]/varSE[-1]]
                         

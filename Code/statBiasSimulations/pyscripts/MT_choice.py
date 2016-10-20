@@ -1,0 +1,32 @@
+# Mersenne Twister
+
+from simulation_utils import *
+import csv
+
+# Boilerplate stuff
+
+reps = int(5 * 10**7)
+n = [30]
+k = [2] 
+seedvalues = [100, 233424280, 429496729]
+
+
+for nn in n:
+    for kk in k:
+        if kk >= nn:
+            continue
+        for ss in seedvalues:
+            mt = np.random
+            mt.seed(ss)
+
+            uniqueSampleCounts = getEmpiricalDistr_MT_choice(mt, n=nn, k=kk, reps=reps)
+            with open('../rawdata/US_MT_choice.csv', 'at') as csv_file:
+                writer = csv.writer(csv_file)
+                for key, value in uniqueSampleCounts.items():
+                    writer.writerow([key, value, nn, kk, ss])
+        
+            itemCounts = getItemCounts(uniqueSampleCounts)    
+            with open('../rawdata/FO_MT_choice.csv', 'at') as csv_file:
+                writer = csv.writer(csv_file)
+                for key, value in itemCounts.items():
+                    writer.writerow([key, value, nn, kk, ss])

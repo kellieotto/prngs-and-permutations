@@ -1,7 +1,7 @@
 from pandas import read_csv
 from simulation_utils import *
 
-PRNGs = ['RANDU', 'SD', 'MT', 'SHA256']
+PRNGs = ['RANDU', 'SD', 'MT', 'SHA256', 'MT_choice']
 maxProb = []
 minProb = []
 meanProb = []
