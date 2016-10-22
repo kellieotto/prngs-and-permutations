@@ -78,17 +78,21 @@ kvalues = []
 selected = []
 
 truePopRangeEV = (2*1 + 2*28 + 0*14*27)/435
-secondMomentRange = (0 + 1*2*28 + 4*1)/435
-truePopRangeSE = math.sqrt(secondMomentRange - truePopRangeEV**2)
+#secondMomentRange = (0 + 1*2*28 + 4*1)/435
+#truePopRangeSE = math.sqrt(secondMomentRange - truePopRangeEV**2)
+truePopRangeSE = math.sqrt(((2-truePopRangeEV)**2 + \
+                           2*28*(1-truePopRangeEV)**2 + \
+                           14*27*(0-truePopRangeEV)**2)/435)
 popRange = []
 aveSampleRange = []
 rangeBias = []
 rangeSE = [] # SE of the sample range over the reps
 rangeRelBias = []
 
-truePopVarEV = (0 + 0.5*2*28 + 2*1)/435
-secondMomentVar = (0 + 0.25*2*28 + 4*1)/435
-truePopVarSE = math.sqrt(secondMomentVar - truePopVarEV**2)
+truePopVarEV = (2*1 + 0.5*2*28 + 0*14*27)/435
+truePopVarSE = math.sqrt((1*(2-truePopVarEV)**2 + \
+                           2*28*(1/2-truePopVarEV)**2 + \
+                           14*27*(0-truePopVarEV)**2)/435)
 popVar = []
 aveSampleVar = []
 varBias = []
@@ -133,8 +137,8 @@ for prngname in PRNGs:
                         least_freq = [min(itemCounts, key=itemCounts.get)]
                         x = makeAdversarialPopulation(nn, most_freq, least_freq)
                     else:
-                        least_freq_sample = min(uniqueSampleCounts, key=uniqueSampleCounts.get)
-                        x = makeAdversarialPopulation(nn, [ss for ss in least_freq_sample])
+                        least_freq_sample = [ss for ss in min(uniqueSampleCounts, key=uniqueSampleCounts.get)]
+                        x = makeAdversarialPopulation(nn, [least_freq_sample[0]], [least_freq_sample[1]])
                     popRange = popRange + [truePopRangeEV]
                     aveSampleRange = aveSampleRange + [getSampleRange(x, uniqueSampleCounts)]
                     rangeBias = rangeBias + [aveSampleRange[-1] - truePopRangeEV]
