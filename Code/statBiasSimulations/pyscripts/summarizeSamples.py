@@ -37,12 +37,17 @@ for prngname in PRNGs:
         for kk in firstorder.k.unique():
             for ss in firstorder.seed.unique():
                 tmp = firstorder[(firstorder.n == nn) & (firstorder.k == kk) & (firstorder.seed == ss)]
-                itemCounts = tmp[['Item','Frequency']].set_index('Item').T.to_dict('list')
+                itemCounts = tmp[['Item','Frequency']].set_index('Item').T.to_dict('records')
+                itemCounts = itemCounts[0]
                 
                 tmp = uniquesamp[(uniquesamp.n == nn) & (uniquesamp.k == kk) & (uniquesamp.seed == ss)]
                 reps = sum(tmp.Frequency)
-                uniqueSampleCounts = tmp[['Sample','Frequency']].set_index('Sample').T.to_dict('list')
-                
+                uniqueSampleCountsbad = tmp[['Sample','Frequency']].set_index('Sample').T.to_dict('records')
+                uniqueSampleCounts = dict()
+                for k, v in uniqueSampleCountsbad[0].items():
+                    k = eval(k)
+                    uniqueSampleCounts[k] = v
+                                    
                 # First order
                 chisqTestResults = conductChiSquareTest(itemCounts)
                 chisqDF_FO = chisqDF_FO + [len(itemCounts)-1]
