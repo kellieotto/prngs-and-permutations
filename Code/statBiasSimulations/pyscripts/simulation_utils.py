@@ -73,8 +73,8 @@ def distrNormalRange(w, n):
     The CDF of the range of n IID standard normals evaluated at w
     '''
     innerInt = lambda x: norm.pdf(x)*(norm.cdf(x+w) - norm.cdf(x))**(n-1)
-    tmp = integrate.quad(innerInt, -np.inf, np.inf)
-    return n*tmp[0]
+    tmp = integrate.quad(innerInt, -2*w, 2*w)
+    return n*(tmp[0] - tmp[1])
 
 
 def test_distrNormalRange():
