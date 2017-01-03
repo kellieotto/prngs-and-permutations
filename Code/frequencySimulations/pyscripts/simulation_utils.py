@@ -7,14 +7,25 @@ import pandas as pd
 
 import sys
 sys.path.append('../../modules')
-from prng import lcgRandom
 from sample import PIKK
 
-def getEmpiricalDistr(randomObject, n, k, reps=10**7):
+def getEmpiricalDistr(randomObject, samplingFunction, n, k, reps=10**7, uniqueSamples=None):
+    '''
+    Compute empirical frequency of samples of size k from n using a particular
+    algorithm and PRNG.
+    
+    randomObject:       A random object with random method, e.g. np.random. Should be seeded and ready to go.
+    samplingFunction:   Function to generate a sample, e.g. PIKK. Must take inputs n, k, randomObject.
+    n:                  Population size
+    k:                  Sample size
+    reps:               Number of samples to draw
+    uniqueSamples:      Default None. Empirical frequency of samples, to be passed in from previous simulations
+                        when calling the function repeatedly for different values of reps.
+    '''
     uniqueSamples = dict()
 
     for i in range(reps): # use range in python 3, xrange in python 2
-        sam = frozenset(PIKK(n, k, randomObject))
+        sam = frozenset(samplingFunction(n, k, randomObject))
         if sam in uniqueSamples:
             uniqueSamples[sam] += 1
         else:
