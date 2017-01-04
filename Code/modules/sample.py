@@ -2,18 +2,37 @@ from __future__ import division
 import numpy as np
 
 
-def PIKK(n,k, gen=np.random):
+def PIKK(n, k, gen=np.random):
+    '''
+    PIKK Algorithm: permute indices and keep k
+    '''
+    
     return set(np.argsort(gen.random(n))[0:k])
 	
 
 def fykd(a, gen=np.random):
+    '''
+    Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
+    '''
     for i in range(len(a)-2):
         J = gen.randint(i,len(a))
         a[i], a[J] = a[J], a[i]
     return(a)
 
 
-def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
+def fykd_sample(n, k, gen=np.random):
+    '''
+    Use fykd to sample k out of 1, ..., n
+    '''
+    a = list(range(1, n+1))
+    a = fykd(a, gen=gen)
+    return(a[:k])
+
+
+def Random_Sample(n, k, gen=np.random):
+    '''
+    Recursive sampling algorithm from Cormen et al
+    '''
     if k==0:
         return set()
     else:
@@ -26,10 +45,13 @@ def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
     return S
 	
 	
-def R(n,k):  # Waterman's algorithm R
-    S = range(1, k+1)  # fill the reservoir
+def Algorithm_R(n, k, gen=np.random):  
+    '''
+    Waterman's Algorithm R for resevoir SRSs
+    '''
+    S = list(range(1, k+1))  # fill the reservoir
     for t in range(k+1,n+1):
-        i = np.random.randint(1,t)
+        i = gen.randint(1,t)
         if i <= k:
             S[i-1] = t
     return set(S)
