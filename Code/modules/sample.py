@@ -37,7 +37,7 @@ def Random_Sample(n, k, gen=np.random):
         return set()
     else:
         S = Random_Sample(n-1, k-1)
-        i = gen.randint(1,n) 
+        i = gen.randint(1,n+1) 
         if i in S:
             S = S.union([n])
         else:
@@ -51,11 +51,30 @@ def Algorithm_R(n, k, gen=np.random):
     '''
     S = list(range(1, k+1))  # fill the reservoir
     for t in range(k+1,n+1):
-        i = gen.randint(1,t)
+        i = gen.randint(1,t+1)
         if i <= k:
             S[i-1] = t
     return set(S)
 	
+    
+def sample_by_index(n, k, gen=np.random):
+    '''
+    Generate a random sample of 1,...,n by selecting indices uniformly at random
+    '''
+    nprime = n
+    S = set()
+    Pop = list(range(1, n+1))
+    while nprime > n-k:
+        w = gen.randint(1, nprime+1)
+        print(w)
+        j = Pop[w-1]
+        S = S.union([j])
+        lastvalue = Pop.pop()
+        if w < nprime:
+            Pop[w-1] = lastvalue # Move last population item to the wth position
+        nprime = nprime - 1
+    return set(S)
+        
 	
 def stirling_lower_bound(n):
     return math.sqrt(2*math.pi)*n**(n+.5)*math.e**(-n)

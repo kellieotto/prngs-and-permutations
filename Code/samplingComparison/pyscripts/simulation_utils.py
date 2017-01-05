@@ -22,7 +22,8 @@ def getEmpiricalDistr(randomObject, samplingFunction, n, k, reps=10**7, uniqueSa
     uniqueSamples:      Default None. Empirical frequency of samples, to be passed in from previous simulations
                         when calling the function repeatedly for different values of reps.
     '''
-    uniqueSamples = dict()
+    if uniqueSamples is None:
+        uniqueSamples = dict()
 
     for i in range(reps): # use range in python 3, xrange in python 2
         sam = frozenset(samplingFunction(n, k, randomObject))
