@@ -7,7 +7,7 @@ from sample import PIKK, fykd, fykd_sample, Random_Sample, Algorithm_R
 
 # Boilerplate stuff
 
-reps = [10**2, 5*10**2, 10**3]
+reps = [10**5, 5*10**5, 10**6, 5*10**6, 10**7]
 rep_diffs = [reps[i+1]-reps[i] for i in range(len(reps)-1)]
 rep_diffs.insert(0, reps[0])
 n = [13, 30]
