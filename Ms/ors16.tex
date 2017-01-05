@@ -1,5 +1,4 @@
 \documentclass[12pt]{article}
-%\usepackage[breaklinks=true]{hyperref}
 \usepackage{color}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{natbib}
@@ -10,17 +9,11 @@
 \usepackage[bottom]{footmisc}
 \usepackage{floatrow}
 \usepackage{float,graphicx}
-\usepackage{caption}
-\usepackage{indentfirst}
-\usepackage{lscape}
-\usepackage{floatrow}
-\usepackage{epsfig}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
-\usepackage[colorlinks=true,
-            urlcolor=RawSienna,
-            linkcolor=RawSienna,
-            citecolor=NavyBlue]{hyperref}
 
+
+\usepackage{algpseudocode,algorithm,algorithmicx}
+\newcommand*\Let[2]{\State #1 $\gets$ #2}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -55,7 +48,7 @@
 
 \begin{document}
 
-\title{Simple Random Sampling: Not Simple}
+\title{Simple Random Sampling: Not So Simple}
 \author{Kellie Ottoboni
 \and
 Ron L. Rivest
@@ -123,7 +116,7 @@ and the Mersenne Twister. We discuss using cryptographic hash functions to gener
 
 
 \section{Background}
-\subsection{Definition of ``random'' numbers}
+\subsection{Randomness and pseudorandomness}
 Most computers lack the hardware needed to generate truly random numbers. 
 Instead, they use algorithms called pseudo-random number generators (PRNGs) to generate
 deterministic sequences from an initial ``seed,'' which generally can be set by the user,
@@ -135,68 +128,89 @@ How does one gauge ``how random'' sequences from a PRNG are?
 A PRNG yields sequences of random numbers on the interval $[0, 1]$ or over the binary set $\{0, 1\}$.
 The sequences output by such PRNGs should be statistically indistinguishable from IID $U(0,1)$ sequences or
 IID Bernoulli$(1/2)$ sequences, respectively.
-The tests for the bit sequence case applies to the $U(0,1)$ case as well, because there is a one-to-one relationship
-between sequences of bits and integers.
-Namely, every sequence of $k$ bits corresponds to an integer on $0, 1, \dots, 2^k-1$, and scaling by $2^k$
-yields a unique value on $[0, 1)$. (cite L'Ecuyer, Simard)
-
-There are a multitude of ways to test the hypothesis that sequences from a PRNG are indistinguishable 
-from random sequences.
-\todo{list types of tests + citations: L'Ecuyer Simard TestU01 (2007),  Knuth (1969), Marsaglia DIEHARD tests (1968), NIST tests
+Tests for randomness, such as the Diehard battery (\cite{marsaglia_diehard_1995}), the NIST Statistical Test Suite (\cite{soto_statistical_1999,rukhin_statistical_2010}), and the TestU01 suite (\cite{lecuyer_testu01_2007}),
+weigh the evidence that sequences produced by PRNGs behave like uniform random numbers in a variety of ways.
+These tests include checks for uniformity at different granularities,
+unpredictability of sequences of different lengths,
+compressibility, and so on.\footnote{
+Any tests that check how random bit sequences are also apply to testing randomness of $U[0,1)$ sequences as well.
+There is a one-to-one relationship between sequences of bits and integers:
+every sequence of $k$ bits corresponds to an integer on $0, 1, \dots, 2^k-1$ (\cite{lecuyer_testu01_2007}).
+}
 
 \begin{itemize}
 \item Two notions of uniformity: 1) uniformly distributed within a sequence with a fixed starting state, 2) the set of sequences of length $t$ that can be hit by the PRNG should be uniformly distributed among the set of all sequences of length $t$ -- this gets at the SRS problem
 \item Make sure to define terms like $k$-distributed
 \end{itemize}
-}
+
 
 \subsection{Sampling algorithms}
 A simple random sample of size $k$ from a population of size $n$ is a sample drawn in such a way that each of the ${n \choose k}$ possible subsets of size $k$ is equally likely.
 Given a good source of randomness, there are many ways to operationalize this definition to draw simple random samples.
-\subsubsection{Algorithm PIKK (permute indices and keep $k$)}
+
+\subsubsection{PIKK (permute indices and keep $k$)}
 One basic approach is like shuffling a deck of $n$ cards, then dealing the top $k$: permute the population at random, then take the first $k$ elements of the permutation to be the sample.
 There are a number of standard ways to generate a random permutation -- i.e., to shuffle the deck.
-If we had a way to generate independent, identically distributed (iid) $U[0,1]$ random numbers, we could sample $k$ out of $n$ as follows:
-\todo{create an algorithm environment}
-Algorithm PIKK
-\begin{itemize}
-\item assign iid $U[0,1]$ numbers to the $n$ elements of the population
-\item the sample consists of the $k$ items assigned the smallest random numbers (break ties randomly)
-\item amounts to generating a random permutation of the population, then taking first $k$.
-\item if the numbers really are iid, every permutation is equally likely, and it follows that the first $k$ are an SRS
-requires $n$ random numbers (and sorting)
-\end{itemize}
+If we had a way to generate independent, identically distributed (iid) $U[0,1]$ random numbers\footnote{
+Alternatively, one could generate independent and identically distributed random integers $1, \dots, n$.
+What matters is not the range of values, but that numbers are uniformly distributed.}, we could sample $k$ out of $n$ as follows:
 
-This algorithm is inefficient: it requires the generation of $n$ random numbers and then a sorting operation.
+\begin{algorithm}                      % enter the algorithm environment
+\caption{PIKK: Permute indices and keep $k$}          % give the algorithm a caption
+\label{PIKK}                           % and a label for \ref{} commands later in the document
+\begin{algorithmic}[1]               % enter the algorithmic environment
+    \Require $n \geq k \geq 0$
+    \Statex
+     \State{Assign IID uniform values on $[0,1]$ to the $n$ elements of the population}
+     \State{Sort the population according to these values (break ties randomly)}
+     \State{Take the top $k$ to be the sample}
+\end{algorithmic}
+\end{algorithm}
+
+This amounts to generating a random permutation of the population and throwing out all but the first $k$.
+If the numbers really are independent and identically distributed, every permutation is equally likely, and it follows that the first $k$ are an SRS.
+If permutations are not equiprobable, then samples generated using this algorithm may not be either.
+
+Furthermore, this algorithm is inefficient: it requires the generation of $n$ random numbers and then an $O(n\log n)$ sorting operation.
 
 \subsubsection{Shuffle}
 There are more efficient ways to generate a random permutation than assigning a number to each element and sorting.
-One example is the "Fisher-Yates shuffle" or "Knuth shuffle" (Knuth attributes it to Durstenfeld).
+One example is the``Fisher-Yates shuffle'' or ``Knuth shuffle'' (Knuth attributes it to Durstenfeld).
 
-\begin{verbatim}
-Algorithm Fisher-Yates-Knuth-Durstenfeld shuffle (backwards version)
-for i=1, ..., n-1:
-    J <- random integer uniformly distributed on {i, ..., n}
-    (a[J], a[i]) <- (a[i], a[J])
-\end{verbatim}
+\begin{algorithm}                      % enter the algorithm environment
+\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (backwards version)}          % give the algorithm a caption
+\label{FYKD}                           % and a label for \ref{} commands later in the document
+\begin{algorithmic}[1]               % enter the algorithmic environment
+\For{$i = 1, \dots, n-1$}
+    \Let{$J$}{random integer uniformly distributed on $i, \dots, n$}
+    \Let{$(a[J], a[i])$}{$(a[i], a[J])$}
+\EndFor
+\end{algorithmic}
+\end{algorithm}
 
 This algorithm requires the ability to generate independent random integers on various ranges, but doesn't require sorting.
 There is also a version suitable for streaming, i.e. generating a random permutation of a list that has an (initially) unknown number of elements.
 
-\begin{verbatim}
-Algorithm Fisher-Yates-Knuth-Durstenfeld shuffle (streaming version)
-i <- 0
-a = []
-while there are records left:
-    i <- i+1
-    J <- random integer uniformly distributed on {1, ..., i}
-    if J < i:
-        a[i] <- a[J]
-        a[J] <- next record
-    else:
-        a[i] <- next record
+\begin{algorithm}                      % enter the algorithm environment
+\caption{Fisher-Yates-Knuth-Durstenfeld shuffle (streaming version)}          % give the algorithm a caption
+\label{FYKD-streaming}                           % and a label for \ref{} commands later in the document
+\begin{algorithmic}[1]               % enter the algorithmic environment
+\Let{$i$}{0}
+\Let{$a$}{[]}
+\While{there are records left}
+    \Let{$i$}{$i+1$}
+    \Let{$J$}{random integer uniformly distributed on $\{1, \dots, i\}$}
+    \If{$J < i$}
+        \Let{$a[i]$}{$a[J]$}
+        \Let{$a[J]$}{next record}
+    \Else
+        \Let{$a[i]$}{next record} 
+    \EndIf
+\EndWhile \\
+\Return{$a$}
+\end{algorithmic}
+\end{algorithm}
 
-\end{verbatim}
 
 \begin{proof}[Proof that the streaming shuffle works]
 We prove by induction. The base case $i=1$ is trivial.
@@ -209,22 +223,34 @@ all values of $J$ and permutations of the first $(i-1)$ elements were equally li
 \end{proof}
 
 
-\subsubsection{Algorithm \texttt{Random\_Sample} from Cormen et al \todo{cite}}
-This is a recursive algorithm that requires only $k$ random integers and does not require sorting.
-\todo{turn into pseudocode; prove by recursion that the method works}
-\begin{verbatim}
-def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
-    if k==0:
-        return set()
-    else:
-        S = Random_Sample(n-1, k-1)
-        i = gen.randint(1,n) 
-        if i in S:
-            S = S.union([n])
-        else:
-            S = S.union([i])
-    return S
-\end{verbatim}
+\subsubsection{\texttt{Random\_Sample}}
+This algorithm is attributed to \citet{cormen_introduction_2009}.
+It is a recursive algorithm that requires only $k$ random integers and does not require sorting.
+\todo{prove by recursion that the method works}
+
+
+\begin{algorithm}                      % enter the algorithm environment
+\caption{$Random\_Sample$}
+\label{Random_Sample}
+\begin{algorithmic}[1]               % enter the algorithmic environment
+\Require{$n \geq k \geq 0$}
+\Statex
+\Function{Random\_Sample}{$n, k$}
+\If{$k$ is $0$}
+    \Return{the empty set}
+\Else
+     \Let{$S$}{\texttt{Random\_Sample}($n-1, k-1$)}
+     \Let{$i$}{random integer uniformly distributed on $\{1, \dots, n\}$} 
+     \If{$i$ is in $S$}
+           \Let{$S$}{$S \cup \{n\}$}
+     \Else
+            \Let{$S$}{$S\cup\{i\}$}  
+     \EndIf, 
+     \Return{$S$}
+\EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Instances of problems}
 The sampling algorithms in the previous section rely on the ability to generate random integers uniformly distributed 
@@ -234,17 +260,17 @@ In this section, we illustrate several known failures in common software package
 
 \subsubsection{Linear Congruential Generators and RANDU}
 
-\begin{itemize}
-\item Linear congruential generators (LCGs) have the form $X_{n+1} = (a X_n + c) \mod m$, for a modulus $m$, 
+Linear congruential generators (LCGs) have the form $X_{n+1} = (a X_n + c) \mod m$, for a modulus $m$, 
 multiplier $a$, and an additive parameter $c$.
 The behavior of LCGs is well-understood from fundamental number theory.
 There are three criteria used to choose good values of the parameters of a LCG:
 the LCG should generate the full period of length $m$,
 the full period sequence $X_1, \dots, X_{m-1}$ should be statistically indistinguishable from random,
-and the multiplication and modulus operations should be able to be implemented efficiently in bitwise arithmetic (\todo{cite Hornfeck and Harbrecht}).
+and the multiplication and modulus operations should be able to be implemented efficiently in bitwise arithmetic (\cite{hornfeck_multiplicative_2009}).
 For instance, there is theory on which LCGs yield a full period. \todo{cite theorem}
 
-\begin{theorem}[Hull-Dobell Theorem]
+\begin{theorem}[Hull-Dobell Full Period Theorem]
+\label{thm:hull_dobell_period}
 The period of an LCG is $m$ for all seeds $X_0$ if and only if
 \begin{itemize}
 \item $m$ and $c$ are relatively prime,
@@ -253,22 +279,26 @@ The period of an LCG is $m$ for all seeds $X_0$ if and only if
 \end{itemize}
 \end{theorem}
 
-\item For the sake of computational speed, programmers developed LCGs using moduli of the form $m = 2^b$, where
+For the sake of computational speed, programmers developed LCGs using moduli of the form $m = 2^b$, where
 $b$ was the integer word size of the computer.
-Such an LCG violates the first principle of choosing good parameters, as no non-prime $m$ can yield an LCG with a full period \todo{cite or prove}.
-One particularly nefarious version of this LCG is RANDU, a PRNG promulgated in the 1960s and widely copied \todo{cite}. 
+Such an LCG violates the first principle of choosing good parameters, as no non-prime $m$ can yield an LCG with a full period.
+
+
+\citet{marsaglia_random_1968} proved that $n$-tuples of numbers generated by any LCG will lie on parallel hyperplanes, making them especially non-random.
+This phenomenon occurs regardless of the choice of parameters $a, c$ and $m$, but there are particularly bad choices.
+One particularly nefarious version of this LCG is RANDU, a PRNG promulgated in the 1960s and widely copied. 
 RANDU takes the form
 
 $$X_{n+1} = 65539 X_n \mod 2^{31}.$$
 
 It has a relatively short period ($2^{29}$), all its outputs are odd integers, and it fails the spectral test, which studies the lattice structures of LCGs.
 Triples of values from RANDU fall on 15 planes in 3-dimensional space.
-\item \todo{mention RANDU blowing up science, finding erroneous crystallographic structure}
-\item \todo{mention Marsaglia random numbers fall on the planes}
-\end{itemize}
+\todo{mention RANDU blowing up science, finding erroneous crystallographic structure}
 
+Better LCGs have been developed, but they are generally considered to be insufficiently random for use in statistics.
+\todo{mention and cite some, say Super-Duper}
 
-\subsubsection{Wichmann-Hill (1982) \todo{cite} and Excel}
+\subsubsection{\citet{wichmann_algorithm_1982} and Excel}
 The Wichmann-Hill PRNG is a sum of three LCGs, used to produce random values on $[0, 1)$.
 Given three seed values $s_1, s_2, s_3$, the next value $r$ is given by
 \begin{align*}
@@ -281,8 +311,7 @@ r &= (s_1/30269 + s_2/30307 + s_3/30323) \mod(1)
 The Wichmann-Hill generator is generally not considered adequate for statistics, but was (nominally) the PRNG in Excel for several generations. 
 Excel did not allow the seed to be set, so analyses were not reproducible.
 Moreover, the generator in Excel had an implementation bug that persisted for several generations.
-Excel didn't allow the seed to be set so issues could not be replicated, but users reportedly generated negative numbers on occasion.
-\todo{cite McCullough, B.D., 2008. Microsoft Excel?s ?Not The Wichmann?Hill? random number generators}
+Excel didn't allow the seed to be set so issues could not be replicated, but users reportedly generated negative numbers on occasion (\cite{mccullough_microsoft_2008}).
 
 \subsubsection{Stata software}
 Prior to April 2011, the \texttt{rnormal()} function in Stata 10 exhibited predictable behavior:
@@ -295,8 +324,7 @@ Stata uses the KISS algorithm to generate PRNs.
 KISS is a combination of an LCG with three other PRNGs, each with a different period.
  \todo{describe KISS and cite Marsaglia}
 Resetting the seed in Stata updates the seed of the LCG, but not the other three PRNGs, so KISS will exhibit the same
-``numbers fall in the planes'' phenomenon as RANDU and other LCGs.
-\todo{cite Ozier: "Perils of Simulation..."}
+``numbers fall in the planes'' phenomenon as RANDU and other LCGs (\cite{ozier_perils_2012}).
 
 
 \subsubsection{Random integer generation in R}
@@ -340,7 +368,6 @@ The maximum ratio of selection probabilities is
 For $m = 10^9$ and $w=32$, $1 + m 2^{-w} \approx 1.233$. That could easily matter.
 In R, one would generally use the function \texttt{sample(1:m, k, replace=FALSE)} to draw pseudo-random integers. 
 It seems that \texttt{sample()} uses the faulty $1 + \lfloor mX\rfloor$ approach.
-\todo{make absolute sure that this is what R does!!}
 \todo{illustrate with a figure}
 
 A better way to generate a (pseudo-)random integer on $\{1, \ldots m\}$ from a (pseudo-random) $w$-bit integer in practice is as follows:
@@ -355,7 +382,6 @@ This is how random integers are generated in \texttt{numpy} by \texttt{numpy.ran
 However, \texttt{numpy.random.choice()} does something else that's biased: it finds the closest integer to $mX$.
 
 \subsection{The right way to generate PRNs}
-\subsubsection{xorShift}
 \subsubsection{Mersenne Twister}
 \subsubsection{Methods based on cryptographic hash functions}
 
@@ -375,28 +401,37 @@ For instance, an algorithm for drawing a sample might ``consume'' more than one 
 The number of distinct permutations of a set of $n$ items attainable by assigning a PRN to each element and sorting the result is less than or equal to the number of states of the PRNG.
 \end{corollary}
 
-See also R. Salfi, 1974, Compstat, 28?35, cited by Knuth, 3.4.2, p. 145: An LCG with modulus $m$ can generate at most $m$ permutations.
+In particular, Theorem~\ref{thm:hull_dobell_period} implies that an LCG with modulus $m$ can generate at most $m$ permutations.
+
 
 \begin{corollary}
 The number of distinct samples of size $k$ of a set of $n$ items attainable by a method that uses at least one PRN state to select the sample is less than or equal to the number of states of the PRNG.
 \end{corollary}
 
 \begin{proposition}
-The algorithm that constructs permutations of a set of $n$ objects by assigning a PRN to each, then sorting, cannot construct all permutations of a set of $n$ objects if $n! > S$, where $S$ is the number of states of the PRNG. In particular, such an algorithm cannot construct all permutations of a set of 13 or more objects if the PRNG has $2^{32}$ states or fewer, and cannot construct all permutations of a set of 35 or more objects, if the PRNG has $2^{128}$ states or fewer. Such an algorithm cannot construct all permutations of a set of 2081 or more objects, if the PRNG is the Mersenne Twister.
+The algorithm that constructs permutations of a set of $n$ objects by assigning a PRN to each, then sorting, cannot construct all permutations of a set of $n$ objects if $n! > S$, where $S$ is the number of states of the PRNG. 
+In particular, using a PRNG with a 32-bit state space, such an algorithm cannot construct all permutations of a set of 13 or more objects.
+Using a PRNG with a 128-bit state space, such an algorithm cannot construct all permutations of a set of 35 or more objects.
+Using the Mersenne Twister, such an algorithm cannot construct all permutations of a set of 2081 or more objects.
 \end{proposition}
 
 
 \begin{proof}
+For a 32-bit PRNG,
 $$13! = 6,227,020,800 > 2^{32} = 4,294,967,296 > 12! = 479,001,600.$$
+For a 128-bit PRNG,
 $$ 35! = 1.03331479664 \times 10^{40} > 2^{128} \approx 3.402e+38 > 34! = 2.63130836934 \times 10^{35}. $$
-And $$ \ln (2081!) \ge 13823.83 > 13818.582 = \log(32 \times 623),$$
-where the first inequality in the last line follows from the Stirling's bound on the factorial:
-$$ e n^{n+1/2} e^{-n} \ge n! \ge \sqrt{2 \pi} n^{n+1/2} e^{-n}.$$
+For the Mersenne Twister, which has $2^{32 \times 623}$ states, \todo{I think the following line is wrong?}
+ $$ \ln (2081!) \ge \ln\left( \sqrt{2 \pi} 2081^{2081.5} e^{-2081} \right) \ge 13823.83 > 13818.582 = \log(32 \times 623),$$
+ $$ \log_2(2081 !) \ge \log_2\left( \sqrt{2 \pi} 2081^{2081.5} e^{-2081} \right) \ge 19943.6 > 19936 = 32 \times 623,$$
+where the first inequality follows from Stirling's bound\footnote{
+Stirling's bound for factorials is $ \sqrt{2 \pi} n^{n+1/2} e^{-n} \le n! \le e n^{n+1/2} e^{-n}$.}.
 \end{proof}
 
 Therefore, the usual proof that PIKK gives an SRS cannot apply for $n \ge 13$ if the PRNG has a 32-bit state space, nor for $n \ge 35$ if the PRNG has a 128-bit state space, nor for $n \ge 2081$ for the Mersenne Twister.
-To show that PIKK works for larger $n$ would require close analysis of the frequencies with which the permutations corresponding to distinct samples of size $k$ each occur, showing they are equal.
-However, if the PRNG can attain all $2^w$ states, then unless $2^w$ is divisible by ${n \choose k}$, it's impossible that there are an equal number of permutations corresponding to each sample of size $k$ from $n$. Since ${n \choose k }$ is generally not a power of 2, that's the usual situation.
+To show that PIKK works for larger $n$ would require showing the frequencies with which the permutations corresponding to distinct samples of size $k$ each occur are equal, despite the fact that not all permutations occur.
+However, if the PRNG can attain a total of $2^w$ states, then unless $2^w$ is divisible by ${n \choose k}$, it's impossible that there are an equal number of permutations corresponding to each sample of size $k$ from $n$. 
+This is the usual situation since ${n \choose k }$ is generally not a power of 2.
 
 
 
@@ -410,6 +445,16 @@ The Mersenne Twister cannot construct all samples of size 1000 from a population
 
 \begin{proof}
 Use raw calculation for PRNGs with 32-bit and 128-bit state and entropy bounds for the Mersenne Twister.
+
+For a 32-bit PRNG,
+$${47\choose10} = 5,178,066,751>  2^{32} = 4,294,967,296 .$$
+For a 128-bit PRNG,
+$${366\choose25} \approx 3.406 \times 10^{38} \ge 2^{128} \approx 3.402 \times 10^{38}.$$
+For the Mersenne Twister,
+define $H(q) \equiv -q\log_2(q) - (1-q)\log_2(1-q)$.
+
+$${3.8 \times 10^8 \choose 1000} \geq \frac{2^{ 3.8 \times 10^8 H(3.8 \times 10^{-5})}}{1 + 3.8 \times 10^8}$$
+
 \todo{flesh out}
 \end{proof}
 
@@ -488,10 +533,12 @@ $$\left\lvert \int \psi dG - \int \psi dF \right\rvert \leq \lVert F - G \rVert_
 }
 
 \subsection{Simulations}
-\section{Hash-function based RNGs}
 \section{Discussion}
 \subsection{Best Practices}
 \section{Conclusions}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
 
 
 
