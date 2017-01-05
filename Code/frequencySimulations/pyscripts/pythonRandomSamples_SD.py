@@ -2,6 +2,8 @@
 
 from simulation_utils import *
 import csv
+sys.path.append('../../modules')
+from prng import lcgRandom
 
 # Boilerplate stuff
 
@@ -20,10 +22,11 @@ M_SD = 2**32
 
 for nn in n:
     for kk in k:
-        if kk >= nn:
+        if kk >= nn or (n == 30 and k == 10):
             continue
         for ss in seedvalues:
-            sdlcg = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)
+            sdlcg = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)            
+            uniqueSampleCounts = None
 
             for rr in range(len(reps)):
                 uniqueSampleCounts = getEmpiricalDistr(sdlcg, PIKK, n=nn, k=kk, reps=rep_diffs[rr], uniqueSamples=uniqueSampleCounts)

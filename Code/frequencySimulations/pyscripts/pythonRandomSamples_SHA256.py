@@ -15,10 +15,11 @@ seedvalues = [100, 233424280, 429496729]
 
 for nn in n:
     for kk in k:
-        if kk >= nn:
+        if kk >= nn or (n == 30 and k == 10):
             continue
         for ss in seedvalues:
             prng = SHA256(ss)
+            uniqueSampleCounts = None
 
             for rr in range(len(reps)):
                 uniqueSampleCounts = getEmpiricalDistr(prng, PIKK, n=nn, k=kk, reps=rep_diffs[rr], uniqueSamples=uniqueSampleCounts)
