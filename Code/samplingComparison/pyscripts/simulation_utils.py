@@ -71,8 +71,10 @@ def distrNormalRange(w, n):
     '''
     innerInt = lambda x: norm.pdf(x)*(norm.cdf(x+w) - norm.cdf(x))**(n-1)
     tmp = integrate.quad(innerInt, -2*w, 2*w)
-    return n*(tmp[0] - tmp[1])
-
+    if n*tmp[0] > 1:
+        return n*(tmp[0] - tmp[1])
+    else:
+        return n*tmp[0]
 
 def test_distrNormalRange():
     n = 100
