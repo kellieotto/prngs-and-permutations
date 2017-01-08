@@ -2,23 +2,42 @@ from __future__ import division
 import numpy as np
 
 
-def PIKK(n,k, gen=np.random):
+def PIKK(n, k, gen=np.random):
+    '''
+    PIKK Algorithm: permute indices and keep k
+    '''
+    
     return set(np.argsort(gen.random(n))[0:k])
 	
 
 def fykd(a, gen=np.random):
+    '''
+    Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
+    '''
     for i in range(len(a)-2):
         J = gen.randint(i,len(a))
         a[i], a[J] = a[J], a[i]
     return(a)
 
 
-def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
+def fykd_sample(n, k, gen=np.random):
+    '''
+    Use fykd to sample k out of 1, ..., n
+    '''
+    a = list(range(1, n+1))
+    a = fykd(a, gen=gen)
+    return(a[:k])
+
+
+def Random_Sample(n, k, gen=np.random):
+    '''
+    Recursive sampling algorithm from Cormen et al
+    '''
     if k==0:
         return set()
     else:
         S = Random_Sample(n-1, k-1)
-        i = gen.randint(1,n) 
+        i = gen.randint(1,n+1) 
         if i in S:
             S = S.union([n])
         else:
@@ -26,14 +45,36 @@ def Random_Sample(n, k, gen=np.random):  # from Cormen et al.
     return S
 	
 	
-def R(n,k):  # Waterman's algorithm R
-    S = range(1, k+1)  # fill the reservoir
+def Algorithm_R(n, k, gen=np.random):  
+    '''
+    Waterman's Algorithm R for resevoir SRSs
+    '''
+    S = list(range(1, k+1))  # fill the reservoir
     for t in range(k+1,n+1):
-        i = np.random.randint(1,t)
+        i = gen.randint(1,t+1)
         if i <= k:
             S[i-1] = t
     return set(S)
 	
+    
+def sample_by_index(n, k, gen=np.random):
+    '''
+    Generate a random sample of 1,...,n by selecting indices uniformly at random
+    '''
+    nprime = n
+    S = set()
+    Pop = list(range(1, n+1))
+    while nprime > n-k:
+        w = gen.randint(1, nprime+1)
+        print(w)
+        j = Pop[w-1]
+        S = S.union([j])
+        lastvalue = Pop.pop()
+        if w < nprime:
+            Pop[w-1] = lastvalue # Move last population item to the wth position
+        nprime = nprime - 1
+    return set(S)
+        
 	
 def stirling_lower_bound(n):
     return math.sqrt(2*math.pi)*n**(n+.5)*math.e**(-n)

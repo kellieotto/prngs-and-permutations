@@ -84,3 +84,8 @@ _minted*
 .ipynb_checkpoints/
 Code/__pycache__/*
 *.pyc
+
+
+# Large files
+Code/samplingComparison/rawdata/*
+Code/frequencySimulations/rawdata/*
