@@ -22,7 +22,8 @@ def getEmpiricalDistr(randomObject, samplingFunction, n, k, reps=10**7, uniqueSa
     uniqueSamples:      Default None. Empirical frequency of samples, to be passed in from previous simulations
                         when calling the function repeatedly for different values of reps.
     '''
-    uniqueSamples = dict()
+    if uniqueSamples is None:
+        uniqueSamples = dict()
 
     for i in range(reps): # use range in python 3, xrange in python 2
         sam = frozenset(samplingFunction(n, k, randomObject))
@@ -71,8 +72,10 @@ def distrNormalRange(w, n):
     '''
     innerInt = lambda x: norm.pdf(x)*(norm.cdf(x+w) - norm.cdf(x))**(n-1)
     tmp = integrate.quad(innerInt, -2*w, 2*w)
-    return n*(tmp[0] - tmp[1])
-
+    if n*tmp[0] > 1:
+        return n*(tmp[0] - tmp[1])
+    else:
+        return n*tmp[0]
 
 def test_distrNormalRange():
     n = 100
