@@ -10,13 +10,13 @@ reps = [int(rr) for rr in reps]
 rep_diffs = [reps[i+1]-reps[i] for i in range(len(reps)-1)]
 rep_diffs.insert(0, reps[0])
 n = [13, 30]
-k = [4, 10]
+k = [3, 4, 10]
 seedvalues = [100, 233424280, 429496729]
 
 
 for nn in n:
     for kk in k:
-        if kk >= nn:
+        if kk >= nn or (nn == 30 and kk != 4):
             continue
         for ss in seedvalues:
             prng = SHA256(ss)

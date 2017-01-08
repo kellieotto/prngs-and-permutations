@@ -23,7 +23,7 @@ M_SD = 2**32
 
 for nn in n:
     for kk in k:
-        if kk >= nn:
+        if kk >= nn or (nn == 30 and kk != 4):
             continue
         for ss in seedvalues:
             sdlcg = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)            
