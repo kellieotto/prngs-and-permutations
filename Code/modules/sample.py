@@ -66,7 +66,6 @@ def sample_by_index(n, k, gen=np.random):
     Pop = list(range(1, n+1))
     while nprime > n-k:
         w = gen.randint(1, nprime+1)
-        print(w)
         j = Pop[w-1]
         S = S.union([j])
         lastvalue = Pop.pop()

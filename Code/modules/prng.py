@@ -32,7 +32,7 @@ class lcgRandom: # defaults to RANDU: BEWARE!
         if high==None:  # numpy.random.randint()-like behavior
             high, low = low, 0
         if size==None:
-            return low + np.floor(self.nextRandom()*(high-low)) # NOT AN ACCURATE ALGORITHM! See below.
+            return int(low + np.floor(self.nextRandom()*(high-low))) # NOT AN ACCURATE ALGORITHM! See below.
         else:
             return low + np.floor(self.random(size=size)*(high-low))
             
