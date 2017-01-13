@@ -81,7 +81,7 @@ class BaseRandom(random.Random):
         >>> str(r)
         'SHA256 PRNG with seed 5'
         """
-        stringrepr = self.__class__.__name__ + " PRNG with seed " + str(self.baseseed)
+        stringrepr = self.__class__.__name__ + " PRNG with seed " + str(self.baseseed) + " and counter " + str(self.counter)
         return stringrepr
         
         
@@ -165,7 +165,7 @@ class SHA256(BaseRandom):
         if size==None:
             return a + (self.nextRandom() % (b-a))
         else:
-            return np.reshape(np.array([a + (self.nextRandom() % (b-a+1)) for i in np.arange(np.prod(size))]), size)
+            return np.reshape(np.array([a + (self.nextRandom() % (b-a)) for i in np.arange(np.prod(size))]), size)
 
         
         
