@@ -1,0 +1,78 @@
+! ipcluster start -n 4 &
+! sleep 45
+
+import numpy as np
+from ipyparallel import Client
+import csv
+
+# Generate 1000 random seeds using random 32-bit integers from MT
+
+np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
+seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
+column_names = ["seed", "reps", "chisq", "range", "ks", "ks_diffs", "gaps", 				"sample_by_index"]
+
+def testSeed(ss, reps):
+
+	# initialize
+	res_list = []
+
+	maxreps = reps[-1]
+	prng = SHA256(ss)
+	sequence = prng.random(maxreps)
+	first_differences = sequence[1:] - sequence[:len(sequence)-1]
+    
+	for rr in reps:
+	    chisq_pvalue = conductChisqTest(sequence[:rr])
+	    range_pvalue = conductRangeTest(sequence[:rr])
+	    ks_pvalue = conductKSTest(sequence[:rr], 'uniform')
+	    ks_diff_pvalue = conductKSTest(first_differences[:rr], 
+					lambda x: triang.cdf(x, c = 0.5, loc = -1, scale = 2))
+	    gaps_pvalue = conductGapTest(sequence[:rr], 0.25, 0.75, 5)['p-value']
+	    samplebyindex_pvalue = conduct_sample_by_index_test(sequence[:rr], n=13, k=3)['p-value']
+	    res_list.append([ss, rr, chisq_pvalue, range_pvalue, ks_pvalue, ks_diff_pvalue, gaps_pvalue, samplebyindex_pvalue])
+		
+	return res_list
+
+c = Client()
+c.ids
+
+dview = c[:]
+dview.block = True
+dview.apply(lambda : "Hello, World")
+
+lview = c.load_balanced_view()
+lview.block = True
+
+dview.execute('import sys')
+dview.execute("sys.path.append('../modules')")
+dview.execute('from sha256prng import SHA256')
+dview.execute('from testsuite import *')
+dview.execute('import numpy as np')
+mydict = dict(seed_values = seed_values, testSeed = testSeed)
+dview.push(mydict)
+
+
+# need a wrapper function because map() only operates on one argument
+
+def wrapper(i):
+    return(testSeed(seed_values[i], reps = [10**4, 10**5, 10**6]))
+
+# Map it to each seed
+
+result = lview.map(wrapper, range(len(seed_values)))
+
+ 
+ 
+# Write results to file
+ 
+with open('SHA256_test_results_raw.csv', 'at') as csv_file:
+	writer = csv.writer(csv_file)
+	writer.writerow(column_names)
+	for i in range(len(result)):
+		for j in range(len(result[i])):
+			writer.writerow(result[i][j])
+
+
+# Finally we stop the worker engines:
+
+! ipcluster stop
