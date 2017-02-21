@@ -1,4 +1,4 @@
-# SLURM Array Job 1: MT, PIKK, n=13, k=3
+# SLURM Array Job 1: SHA256, sample_by_index, n=13, k=3
 
 
 import numpy as np
@@ -23,12 +23,12 @@ def testSeed(ss, reps):
 	rep_diffs = [reps[i+1]-reps[i] for i in range(len(reps)-1)]
 	rep_diffs.insert(0, reps[0])
 	
-	mt = np.random
-	mt.seed(ss)
+	prng = SHA256(ss)
+
 	uniqueSampleCounts = None
 	
 	for rr in range(len(reps)):
-		uniqueSampleCounts = getEmpiricalDistr(mt, PIKK, n=nn, k=kk, 
+		uniqueSampleCounts = getEmpiricalDistr(prng, sample_by_index, n=nn, k=kk, 
 		reps=rep_diffs[rr], uniqueSamples=uniqueSampleCounts)
 	
 		chisqTestResults = conductChiSquareTest(uniqueSampleCounts)
@@ -56,8 +56,9 @@ lview.block = True
 
 dview.execute('import sys')
 dview.execute("sys.path.append('../modules')")
-#dview.execute('from sha256prng import SHA256')
+dview.execute('from sha256prng import SHA256')
 dview.execute('from simulation_utils import *')
+dview.execute('from sample import PIKK, sample_by_index')
 dview.execute('import numpy as np')
 mydict = dict(seed_values = seed_values, testSeed = testSeed, reps = reps, nn = 13, kk = 3)
 dview.push(mydict)
@@ -81,7 +82,7 @@ result = lview.map(wrapper, range(len(seed_values)))
 
 # Write results to file
 
-with open('../rawdata/MT_1000seeds_PIKK_n13_k3.csv', 'at') as csv_file:
+with open('../rawdata/SHA256_1000seeds_sbi_n13_k3.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):

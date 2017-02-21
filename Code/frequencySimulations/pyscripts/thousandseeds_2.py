@@ -39,7 +39,7 @@ def testSeed(ss, reps):
 		rangeStat_US = np.ptp(list(uniqueSampleCounts.values()))
 		rangePvalue_US = 1-distrMultinomialRange(rangeStat_US, reps[rr], comb(nn, kk))
 		
-		res_list.append([ss, reps[rr], nn, kk, chisqStatistic_US, chisqDF_US, 			chisqPvalue_US, rangeStat_US, rangePvalue_US])
+		res_list.append([ss, reps[rr], nn, kk, chisqStatistic_US, chisqDF_US, chisqPvalue_US, rangeStat_US, rangePvalue_US])
 
 	return res_list
 

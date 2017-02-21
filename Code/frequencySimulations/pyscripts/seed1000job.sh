@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #
 # Processors per node:
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=12
 #
 # Notifications for job done and fail
 #SBATCH --mail-type=END,FAIL
