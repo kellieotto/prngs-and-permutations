@@ -1,14 +1,21 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=test
+#SBATCH --job-name=srs-freq
 #
 # Number of nodes:
 #SBATCH --nodes=1
 #
 # Processors per node:
 #SBATCH --ntasks-per-node=8
+#
+# Notifications for job done and fail
+#SBATCH --mail-type=END,FAIL
+#
+# Send-to address
+#SBATCH --mail-user=kellieotto@berkeley.edu
+
 ## Command(s) to run:
 ipcluster start -n $SLURM_NTASKS_PER_NODE &
 sleep 50
-ipython MT_1000seeds_PIKK_n13_k3.ipy > MT_1000seeds_PIKK_n13_k3.pyout
+ipython thousandseeds_"${SLURM_ARRAY_TASK_ID}".py > thousandseeds_"${SLURM_ARRAY_TASK_ID}".pyout
 ipcluster stop
