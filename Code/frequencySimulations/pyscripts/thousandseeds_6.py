@@ -27,7 +27,11 @@ def testSeed(ss, reps):
 	rep_diffs = [reps[i+1]-reps[i] for i in range(len(reps)-1)]
 	rep_diffs.insert(0, reps[0])
 	
-	sdlcg = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)
+    # Parameters for the Super Duper LCG
+    A_SD = 0
+    B_SD = 69069
+    M_SD = 2**32
+    sdlcg = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)
 
 	uniqueSampleCounts = None
 	
