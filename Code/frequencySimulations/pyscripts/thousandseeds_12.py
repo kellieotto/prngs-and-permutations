@@ -1,4 +1,4 @@
-# SLURM Array Job 1: SHA256, sample_by_index, n=13, k=10
+# SLURM Array Job 12: SHA256, sample_by_index, n=13, k=10
 
 
 import numpy as np
@@ -55,7 +55,7 @@ lview = c.load_balanced_view()
 lview.block = True
 
 dview.execute('import sys')
-dview.execute("sys.path.append('../modules')")
+dview.execute("sys.path.append('../../modules')")
 dview.execute('from sha256prng import SHA256')
 dview.execute('from simulation_utils import *')
 dview.execute('from sample import PIKK, sample_by_index')

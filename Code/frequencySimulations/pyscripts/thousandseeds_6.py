@@ -1,4 +1,4 @@
-# SLURM Array Job 1: Super Duper, PIKK, n=13, k=10
+# SLURM Array Job 6: Super Duper, PIKK, n=13, k=10
 
 
 import numpy as np
@@ -59,8 +59,7 @@ lview = c.load_balanced_view()
 lview.block = True
 
 dview.execute('import sys')
-dview.execute("sys.path.append('../modules')")
-#dview.execute('from sha256prng import SHA256')
+dview.execute("sys.path.append('../../modules')")
 dview.execute('from simulation_utils import *')
 dview.execute('from prng import lcgRandom')
 dview.execute('import numpy as np')

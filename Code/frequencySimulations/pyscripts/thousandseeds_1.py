@@ -55,8 +55,7 @@ lview = c.load_balanced_view()
 lview.block = True
 
 dview.execute('import sys')
-dview.execute("sys.path.append('../modules')")
-#dview.execute('from sha256prng import SHA256')
+dview.execute("sys.path.append('../../modules')")
 dview.execute('from simulation_utils import *')
 dview.execute('import numpy as np')
 mydict = dict(seed_values = seed_values, testSeed = testSeed, reps = reps, nn = 13, kk = 3)
