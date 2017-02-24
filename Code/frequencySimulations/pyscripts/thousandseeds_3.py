@@ -4,7 +4,7 @@
 import numpy as np
 from ipyparallel import Client
 import csv
-
+import os
 
 # Generate 1000 random seeds using random 32-bit integers from MT
 
@@ -44,8 +44,10 @@ def testSeed(ss, reps):
 	return res_list
 
 # Set up engines
+arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
+mycluster = "cluster-" + str(arrayid)
 
-c = Client()
+c = Client(profile=mycluster)
 c.ids
 
 dview = c[:]
