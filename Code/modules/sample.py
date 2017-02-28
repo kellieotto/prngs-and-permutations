@@ -10,6 +10,15 @@ def PIKK(n, k, gen=np.random):
     return set(np.argsort(gen.random(n))[0:k])
 	
 
+
+def permute_indices(n, gen=np.random):
+    '''
+    PIKK algorithm, but we keep all n
+    '''
+    
+    return np.argsort(gen.random(n))
+
+
 def fykd(a, gen=np.random):
     '''
     Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
