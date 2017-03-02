@@ -89,3 +89,4 @@ Code/__pycache__/*
 # Large files
 Code/samplingComparison/rawdata/*
 Code/frequencySimulations/rawdata/*
+Code/SPRT/rawdata/*
