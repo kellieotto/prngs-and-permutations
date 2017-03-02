@@ -121,7 +121,7 @@ def testSeed(ss, n, k, s):
     
     sampling_func = lambda: PIKK(n, k, prng)
     res = sequential_multinomial_test(sampling_func, num_categories=comb(n, k), alpha=0.05, beta=0, multiplier=1.1, s=s)
-    return ["MT", "permute_indices", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps'], n, k, s]
+    return ["SD", "permute_indices", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps'], n, k, s]
     
     
 
