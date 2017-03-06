@@ -13,7 +13,7 @@ from sample import PIKK, sample_by_index
 from prng import lcgRandom
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
-seed_values = np.random.randint(low = 1, high = 2**32, size = 10)
+seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 column_names = ["prng", "algorithm", "seed", "decision", "LR", "pvalue", "steps", "n", "k", "s"]
 
 # Parameters for the Super Duper LCG
@@ -26,7 +26,7 @@ M_SD = 2**32
 ################################################################################
 
 def sequential_multinomial_test(sampling_function, num_categories, alpha, beta, multiplier, \
-                                s = None, maxsteps=10**5):
+                                s = None, maxsteps=10**7):
     '''
     Conduct Wald's SPRT for multinomial distribution with num_categories categories
     Let p = sum_{s most frequent categories} p_category

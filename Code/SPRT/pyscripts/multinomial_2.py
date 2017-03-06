@@ -1,6 +1,6 @@
 ################################################################################
-# SLURM Array Job 5
-# SPRT of sample probabilities (multinomial equal p), SHA256, n=13, k=3, s = 10, PIKK
+# SLURM Array Job 2
+# SPRT of sample probabilities (multinomial equal p), MT, n=13, k=3, s = 10, sample_by_index
 ################################################################################
 
 import numpy as np
@@ -10,10 +10,9 @@ from scipy.misc import comb
 import sys
 sys.path.append('../../modules')
 from sample import PIKK, sample_by_index
-from sha256prng import SHA256
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
-seed_values = np.random.randint(low = 1, high = 2**32, size = 10)
+seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 column_names = ["prng", "algorithm", "seed", "decision", "LR", "pvalue", "steps", "n", "k", "s"]
 
 ################################################################################
@@ -21,7 +20,7 @@ column_names = ["prng", "algorithm", "seed", "decision", "LR", "pvalue", "steps"
 ################################################################################
 
 def sequential_multinomial_test(sampling_function, num_categories, alpha, beta, multiplier, \
-                                s = None, maxsteps=10**5):
+                                s = None, maxsteps=10**7):
     '''
     Conduct Wald's SPRT for multinomial distribution with num_categories categories
     Let p = sum_{s most frequent categories} p_category
@@ -112,11 +111,12 @@ def sequential_multinomial_test(sampling_function, num_categories, alpha, beta, 
 
 def testSeed(ss, n, k, s):
 
-    prng = SHA256(ss)
+    prng = np.random
+    prng.seed(ss)
     
-    sampling_func = lambda: PIKK(n, k, prng)
+    sampling_func = lambda: sample_by_index(n, k, prng)
     res = sequential_multinomial_test(sampling_func, num_categories=comb(n, k), alpha=0.05, beta=0, multiplier=1.1, s=s)
-    return ["SHA256", "PIKK", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps'], n, k, s]
+    return ["MT", "sample_by_index", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps'], n, k, s]
     
     
 
@@ -136,7 +136,7 @@ result = list(map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values))
 
 # Write results to file
 
-with open('../rawdata/SHA256_multinomial_PIKK.csv', 'at') as csv_file:
+with open('../rawdata/MT_multinomial_sbi.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):

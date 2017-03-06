@@ -1,12 +1,12 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=multinomial-spr
+#SBATCH --job-name=multinomial-sprt
 #
 # Number of nodes:
 #SBATCH --nodes=1
 #
 # Processors per node:
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=12
 #
 # Notifications for job done and fail
 #SBATCH --mail-type=END,FAIL
@@ -18,5 +18,5 @@
 ipython profile create "cluster-${SLURM_ARRAY_TASK_ID}" --parallel
 ipcluster start --profile="cluster-${SLURM_ARRAY_TASK_ID}" -n $SLURM_NTASKS_PER_NODE &
 sleep 50
-ipython thousandseeds_"${SLURM_ARRAY_TASK_ID}".py > thousandseeds_"${SLURM_ARRAY_TASK_ID}".pyout
+ipython multinomial_"${SLURM_ARRAY_TASK_ID}".py
 ipcluster stop --profile="cluster-${SLURM_ARRAY_TASK_ID}"
