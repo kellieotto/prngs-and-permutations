@@ -6,6 +6,7 @@
 import numpy as np
 import csv
 from scipy.misc import comb
+from ipyparallel import Client
 
 import sys
 sys.path.append('../../modules')
@@ -123,6 +124,30 @@ def testSeed(ss, n, k, s):
 def wrapper(i):
     return(testSeed(seed_values[i]))
     
+################################################################################
+# Set up engines
+################################################################################
+arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
+mycluster = "cluster-" + str(arrayid)
+
+c = Client(profile=mycluster)
+c.ids
+
+dview = c[:]
+dview.block = True
+
+lview = c.load_balanced_view()
+lview.block = True
+
+dview.execute('import sys')
+dview.execute("sys.path.append('../../modules')")
+dview.execute('from sample import permute_indices, fykd')
+dview.execute('from scipy.misc import comb')
+dview.execute('import numpy as np')
+mydict = dict(seed_values = seed_values, 
+              testSeed = testSeed,
+              sequential_multinomial_test = sequential_multinomial_test)
+dview.push(mydict)
     
 
 ################################################################################
@@ -132,7 +157,7 @@ def wrapper(i):
 # Map it to each seed
 
 #result = list(map(wrapper, range(len(seed_values))))
-result = list(map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values))
+result = lview.map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values))
 
 # Write results to file
 
