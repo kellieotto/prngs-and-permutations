@@ -148,6 +148,7 @@ lview.block = True
 dview.execute('import sys')
 dview.execute("sys.path.append('../../modules')")
 dview.execute('from sample import PIKK, sample_by_index')
+dview.execute('from prng import lcgRandom')
 dview.execute('from scipy.misc import comb')
 dview.execute('import numpy as np')
 mydict = dict(seed_values = seed_values, 
