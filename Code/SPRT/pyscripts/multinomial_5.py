@@ -7,6 +7,7 @@ import numpy as np
 import csv
 from scipy.misc import comb
 from ipyparallel import Client
+import os
 
 import sys
 sys.path.append('../../modules')
@@ -141,7 +142,7 @@ lview.block = True
 
 dview.execute('import sys')
 dview.execute("sys.path.append('../../modules')")
-dview.execute('from sample import permute_indices, fykd')
+dview.execute('from sample import PIKK, sample_by_index')
 dview.execute('from scipy.misc import comb')
 dview.execute('import numpy as np')
 mydict = dict(seed_values = seed_values, 
@@ -157,7 +158,7 @@ dview.push(mydict)
 # Map it to each seed
 
 #result = list(map(wrapper, range(len(seed_values))))
-result = lview.map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values))
+result = lview.map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values)
 
 
 # Write results to file
