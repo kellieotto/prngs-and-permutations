@@ -18,11 +18,6 @@ np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 column_names = ["prng", "algorithm", "seed", "decision", "LR", "pvalue", "steps", "n", "k", "s"]
 
-# Parameters for the Super Duper LCG
-A_SD = 0
-B_SD = 69069
-M_SD = 2**32
-
 ################################################################################
 # SPRT functions
 ################################################################################
@@ -119,7 +114,7 @@ def sequential_multinomial_test(sampling_function, num_categories, alpha, beta, 
 
 def testSeed(ss, n, k, s):
 
-    prng = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)
+    prng = lcgRandom(seed=ss, A=0, B=69069, M=2**32)
     
     sampling_func = lambda: PIKK(n, k, prng)
     res = sequential_multinomial_test(sampling_func, num_categories=comb(n, k), alpha=0.05, beta=0, multiplier=1.1, s=s)

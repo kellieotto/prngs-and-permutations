@@ -119,7 +119,7 @@ def sequential_multinomial_test(sampling_function, num_categories, alpha, beta, 
 
 def testSeed(ss, n, k, s):
 
-    prng = lcgRandom(seed=ss, A=A_SD, B=B_SD, M=M_SD)
+    prng = lcgRandom(seed=ss, A=0, B=69069, M=2**32)
     
     sampling_func = lambda: sample_by_index(n, k, prng)
     res = sequential_multinomial_test(sampling_func, num_categories=comb(n, k), alpha=0.05, beta=0, multiplier=1.1, s=s)
