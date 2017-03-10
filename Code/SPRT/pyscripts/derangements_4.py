@@ -1,6 +1,6 @@
 ################################################################################
 # SLURM Array Job 4
-# SPRT of permutation derangements, SD, n=100, fykd
+# SPRT of permutation derangements, SD, n=10, fykd
 ################################################################################
 
 import numpy as np
@@ -109,7 +109,7 @@ def testSeed(ss):
     prng = lcgRandom(seed=ss, A=0, B=69069, M=2**32)
 
     sampling_func = lambda n: fykd(np.array(range(n)), prng)
-    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05, beta=0, multiplier=1.1)
+    res = sequential_derangement_test(sampling_func, n=10, alpha=0.05, beta=0, multiplier=1.1)
     return ["SD", "fykd", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps']]
     
     
@@ -157,7 +157,7 @@ result = lview.map(testSeed, seed_values)
 
 # Write results to file
 
-with open('../rawdata/SD_derangements_fykd_n100.csv', 'at') as csv_file:
+with open('../rawdata/SD_derangements_fykd_n10.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):

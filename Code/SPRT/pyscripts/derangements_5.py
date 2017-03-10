@@ -1,6 +1,6 @@
 ################################################################################
 # SLURM Array Job 5
-# SPRT of permutation derangements, SHA256, n=100, permute_indices
+# SPRT of permutation derangements, SHA256, n=10, permute_indices
 ################################################################################
 
 import numpy as np
@@ -109,7 +109,7 @@ def testSeed(ss):
     prng = SHA256(ss)
 
     sampling_func = lambda n: permute_indices(n, prng)
-    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05, beta=0, multiplier=1.1)
+    res = sequential_derangement_test(sampling_func, n=10, alpha=0.05, beta=0, multiplier=1.1)
     return ["SHA256", "permute_indices", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps']]
     
     
@@ -157,7 +157,7 @@ result = lview.map(testSeed, seed_values)
 
 # Write results to file
 
-with open('../rawdata/SHA256_derangements_pi_n100.csv', 'at') as csv_file:
+with open('../rawdata/SHA256_derangements_pi_n10.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):
