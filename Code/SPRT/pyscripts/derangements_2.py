@@ -1,13 +1,12 @@
 ################################################################################
-# SLURM Array Job 1
-# SPRT of permutation derangements, MT, n=100, permute_indices
+# SLURM Array Job 2
+# SPRT of permutation derangements, MT, n=100,FYKD
 ################################################################################
 
 import numpy as np
-from ipyparallel import Client
 import csv
+from ipyparallel import Client
 import os
-
 
 import sys
 sys.path.append('../../modules')
@@ -15,7 +14,7 @@ from sample import permute_indices, fykd
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
-column_names = ["seed", "decision", "LR", "pvalue", "steps"]
+column_names = ["prng", "algorithm", "seed", "decision", "LR", "pvalue", "steps"]
 
 ################################################################################
 # SPRT functions
@@ -38,7 +37,7 @@ def check_derangement(vec, perm):
     return not any(np.equal(vec, perm))
 
 
-def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=10**8):
+def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=10**7):
     '''
     Conduct Wald's SPRT for whether derangements occur more or less frequently than 1/e
     H_0: derangements occur with equal frequency (p approx 1/e)
@@ -52,14 +51,11 @@ def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, m
     maxsteps: maximum number of trials before stopping the test. Default is 10**8.
     '''
 
-    assert multiplier > 1
     assert maxsteps > 0
 
     # Set p0 = probability of a derangement
     p0 = prob_derangement(n)
     p1 = multiplier*p0
-    assert p1 < 1
-    assert p0 < 1
     
     # Set parameters
     lower = beta/(1-alpha)
@@ -112,9 +108,9 @@ def testSeed(ss):
     prng = np.random
     prng.seed(ss)
 
-    sampling_func = lambda n: permute_indices(n, prng)
-    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05, beta=0.05, multiplier=1.1, maxsteps = 10**5)
-    return [ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps']]
+    sampling_func = lambda n: fykd(np.array(range(n)), prng)
+    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05, beta=0, multiplier=1.1)
+    return ["MT", "fykd", ss, res['decision'], res['LR'][-1], res['pvalue'], res['steps']]
     
     
 
@@ -122,16 +118,13 @@ def wrapper(i):
     return(testSeed(seed_values[i]))
     
     
-
 ################################################################################
 # Set up engines
 ################################################################################
-#arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
-#mycluster = "cluster-" + str(arrayid)
+arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
+mycluster = "cluster-" + str(arrayid)
 
-#c = Client(profile=mycluster)
-! ipcluster start -n 4 &
-c = Client()
+c = Client(profile=mycluster)
 c.ids
 
 dview = c[:]
@@ -143,6 +136,7 @@ lview.block = True
 dview.execute('import sys')
 dview.execute("sys.path.append('../../modules')")
 dview.execute('from sample import permute_indices, fykd')
+dview.execute('from scipy.misc import comb')
 dview.execute('import numpy as np')
 mydict = dict(seed_values = seed_values, 
               testSeed = testSeed,
@@ -151,21 +145,20 @@ mydict = dict(seed_values = seed_values,
               sequential_derangement_test = sequential_derangement_test)
 dview.push(mydict)
 
-
-
+################################################################################
+# Execute
+################################################################################
 
 # Map it to each seed
 
-result = lview.map(wrapper, range(len(seed_values)))
- 
- 
+#result = list(map(wrapper, range(len(seed_values))))
+result = lview.map(testSeed, seed_values))
 
 # Write results to file
 
-with open('../rawdata/MT_derangements_pi_n100.csv', 'at') as csv_file:
+with open('../rawdata/MT_derangements_fykd_n100.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):
-		for j in range(len(result[i])):
-			writer.writerow(result[i][j])
+		writer.writerow(result[i])
 
