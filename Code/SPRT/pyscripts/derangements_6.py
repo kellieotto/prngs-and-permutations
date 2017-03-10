@@ -153,7 +153,7 @@ dview.push(mydict)
 # Map it to each seed
 
 #result = list(map(wrapper, range(len(seed_values))))
-result = lview.map(testSeed, seed_values))
+result = lview.map(testSeed, seed_values)
 
 # Write results to file
 
