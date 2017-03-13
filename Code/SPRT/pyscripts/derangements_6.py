@@ -76,8 +76,8 @@ def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, m
     
     LR_upper = [1]
     LR_lower = [1]
-    decision_upper = None        
-    decision_lower = None        
+    decision_upper = "None"
+    decision_lower = "None"      
     vec = np.array(range(0, n))
     steps = 0
     
@@ -144,7 +144,7 @@ def testSeed(ss):
     prng = SHA256(ss)
 
     sampling_func = lambda n: fykd(np.array(range(n)), prng)
-    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05/2, beta=0, multiplier=1.1)
+    res = sequential_derangement_test(sampling_func, n=100, alpha=0.05/2, beta=0, multiplier=1.01)
     return ["SHA256", "fykd", ss, res['decision_upper'], res['LR_upper'][-1], res['steps_upper'],
             res['decision_lower'], res['LR_lower'][-1], res['steps_lower']]
     
