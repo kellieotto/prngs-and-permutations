@@ -205,7 +205,7 @@ dview.push(mydict)
 # Map it to each seed
 
 #result = list(map(wrapper, range(len(seed_values))))
-result = lview.map(lambda ss: testSeed(ss, n=13, k=3, s=10), seed_values)
+result = lview.map(lambda ss: testSeed(ss, n=13, k=3, s=s), seed_values)
 
 
 # Write results to file
