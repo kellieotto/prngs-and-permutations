@@ -38,7 +38,7 @@ def check_derangement(vec, perm):
     return not any(np.equal(vec, perm))
 
 
-def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=10**7):
+def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=10**6):
     '''
     Conduct Wald's SPRT for whether derangements occur more or less frequently than 1/e
     H_0: derangements occur with equal frequency (p approx 1/e)
@@ -51,7 +51,7 @@ def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, m
     beta: desired type 2 error rate
     multiplier: value in (1, 1/p0). Determines the "greater than" alternative hypothesis,
         and 2-multiplier determines the "less than" alternative hypothesis
-    maxsteps: maximum number of trials before stopping the test. Default is 10**7.
+    maxsteps: maximum number of trials before stopping the test. Default is 10**6.
     '''
 
     assert multiplier > 1
