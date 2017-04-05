@@ -1,11 +1,10 @@
-# SLURM Array Job 9: SHA256, PIKK, n=13, k=3
-! ipcluster start -n 12 &
-! sleep 45
+# SLURM Array Job 18: SHA256, sample_by_index, n=30, k=2
+
 
 import numpy as np
 from ipyparallel import Client
 import csv
-
+import os
 
 # Generate 1000 random seeds using random 32-bit integers from MT
 
@@ -13,7 +12,7 @@ np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 column_names = ["seed", "reps", "PopSize", "SampleSize", "chisqStat", "chisqDF",
                 "chisqPvalue", "rangeStat", "rangePvalue"]
-reps = np.linspace(10**5, 10**7, num = 10)
+reps = np.linspace(10**5, 10**7, num = 1000)
 reps = [int(rr) for rr in reps]
 
 
@@ -29,7 +28,7 @@ def testSeed(ss, reps):
 	uniqueSampleCounts = None
 	
 	for rr in range(len(reps)):
-		uniqueSampleCounts = getEmpiricalDistr(prng, PIKK, n=nn, k=kk, 
+		uniqueSampleCounts = getEmpiricalDistr(prng, sample_by_index, n=nn, k=kk, 
 		reps=rep_diffs[rr], uniqueSamples=uniqueSampleCounts)
 	
 		chisqTestResults = conductChiSquareTest(uniqueSampleCounts)
@@ -45,8 +44,10 @@ def testSeed(ss, reps):
 	return res_list
 
 # Set up engines
+arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
+mycluster = "cluster-" + str(arrayid)
 
-c = Client()
+c = Client(profile=mycluster)
 c.ids
 
 dview = c[:]
@@ -59,8 +60,9 @@ dview.execute('import sys')
 dview.execute("sys.path.append('../../modules')")
 dview.execute('from sha256prng import SHA256')
 dview.execute('from simulation_utils import *')
+dview.execute('from sample import PIKK, sample_by_index')
 dview.execute('import numpy as np')
-mydict = dict(seed_values = seed_values, testSeed = testSeed, reps = reps, nn = 13, kk = 3)
+mydict = dict(seed_values = seed_values, testSeed = testSeed, reps = reps, nn = 30, kk = 2)
 dview.push(mydict)
 
 
@@ -82,14 +84,9 @@ result = lview.map(wrapper, range(len(seed_values)))
 
 # Write results to file
 
-with open('../rawdata/SHA256_1000seeds_PIKK_n13_k3.csv', 'at') as csv_file:
+with open('../rawdata/SHA256_1000seeds_sbi_n30_k2.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):
 		for j in range(len(result[i])):
 			writer.writerow(result[i][j])
-
-
-# Finally we stop the worker engines:
-
-! ipcluster stop
