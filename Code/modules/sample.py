@@ -23,7 +23,7 @@ def fykd(a, gen=np.random):
     '''
     Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
     '''
-    for i in range(len(a)-2):
+    for i in range(len(a)-1):
         J = gen.randint(i,len(a))
         a[i], a[J] = a[J], a[i]
     return(a)
