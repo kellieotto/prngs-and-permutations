@@ -21,6 +21,8 @@ RECIP_BITLEN = 2**-BITLEN
 ############################# NIST RNG Class ###################################
 ################################################################################
 
+# https://www.nist.gov/programs-projects/nist-randomness-beacon
+
 class NistBeaconRandom(random.Random):
     '''Random number generator base class'''
 

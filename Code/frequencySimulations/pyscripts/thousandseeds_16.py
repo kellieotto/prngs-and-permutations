@@ -12,7 +12,7 @@ np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 column_names = ["seed", "reps", "PopSize", "SampleSize", "chisqStat", "chisqDF",
                 "chisqPvalue", "rangeStat", "rangePvalue"]
-reps = np.linspace(10**5, 10**7, num = 1000)
+reps = np.linspace(10**5, 10**7, num = 10)
 reps = [int(rr) for rr in reps]
 
 # Parameters for the Super Duper LCG
