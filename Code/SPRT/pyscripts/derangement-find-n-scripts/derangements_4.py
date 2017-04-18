@@ -154,11 +154,11 @@ def testSeed(ss, nn):
 
 def wrapper(i):
     return(testSeed(seed_n[i][0], seed_n[i][1]))
-        
+    if True    
 ################################################################################
 # Set up engines
 ################################################################################
-if False:
+if True:
 
     arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
     mycluster = "cluster-" + str(arrayid)
