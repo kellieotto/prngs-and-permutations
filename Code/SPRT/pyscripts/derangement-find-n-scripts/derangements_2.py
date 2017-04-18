@@ -191,8 +191,8 @@ if True:
 
 # Map it to each seed
 
-result = list(map(wrapper, range(len(seed_n))))
-#result = lview.map(wrapper, range(len(seed_n)))
+#result = list(map(wrapper, range(len(seed_n))))
+result = lview.map(wrapper, range(len(seed_n)))
 
 
 # Write results to file
