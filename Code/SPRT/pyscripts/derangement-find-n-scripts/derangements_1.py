@@ -9,7 +9,7 @@ from ipyparallel import Client
 import os
 
 import sys
-sys.path.append('../../../modules')
+sys.path.append('../../modules')
 from sample import permute_indices, fykd
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC

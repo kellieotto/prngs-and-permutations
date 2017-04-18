@@ -10,7 +10,7 @@ from ipyparallel import Client
 import os
 
 import sys
-sys.path.append('../../../modules')
+sys.path.append('../../modules')
 from sample import permute_indices, fykd
 from sha256prng import SHA256
 
@@ -176,6 +176,7 @@ if True:
     dview.execute('import sys')
     dview.execute("sys.path.append('../../modules')")
     dview.execute('from sample import permute_indices, fykd')
+    dview.execute('from sha256prng import SHA256')
     dview.execute('from scipy.misc import comb')
     dview.execute('import numpy as np')
     mydict = dict(seed_n = seed_n, 

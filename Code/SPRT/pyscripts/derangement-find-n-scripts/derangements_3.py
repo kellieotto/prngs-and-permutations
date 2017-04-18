@@ -10,7 +10,7 @@ from ipyparallel import Client
 import os
 
 import sys
-sys.path.append('../../../modules')
+sys.path.append('../../modules')
 from sample import permute_indices, fykd
 from prng import lcgRandom
 
@@ -178,6 +178,7 @@ if True:
     dview.execute("sys.path.append('../../modules')")
     dview.execute('from sample import permute_indices, fykd')
     dview.execute('from scipy.misc import comb')
+    dview.execute('from prng import lcgRandom')
     dview.execute('import numpy as np')
     mydict = dict(seed_n = seed_n, 
                   testSeed = testSeed,
