@@ -18,5 +18,5 @@
 ipython profile create "cluster-${SLURM_ARRAY_TASK_ID}" --parallel
 ipcluster start --profile="cluster-${SLURM_ARRAY_TASK_ID}" -n $SLURM_NTASKS_PER_NODE &
 sleep 45
-ipython derangement-scripts/derangements_"${SLURM_ARRAY_TASK_ID}".py
+ipython derangement-find-n-scripts/derangements_"${SLURM_ARRAY_TASK_ID}".py
 ipcluster stop --profile="cluster-${SLURM_ARRAY_TASK_ID}"
