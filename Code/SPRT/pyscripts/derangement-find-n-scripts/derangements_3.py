@@ -160,7 +160,7 @@ def wrapper(i):
 ################################################################################
 # Set up engines
 ################################################################################
-if False:
+if True:
 
     arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
     mycluster = "cluster-" + str(arrayid)
@@ -192,8 +192,8 @@ if False:
 ################################################################################
 
 # Map it to each seed
-result = list(map(wrapper, range(len(seed_n))))
-#result = lview.map(wrapper, range(len(seed_n)))
+#result = list(map(wrapper, range(len(seed_n))))
+result = lview.map(wrapper, range(len(seed_n)))
 
 # Write results to file
 
