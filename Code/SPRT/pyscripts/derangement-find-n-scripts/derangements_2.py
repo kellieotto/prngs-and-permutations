@@ -197,7 +197,7 @@ result = lview.map(wrapper, range(len(seed_n)))
 
 # Write results to file
 
-with open('../../rawdata/MT_derangements_fykd_findn.csv', 'at') as csv_file:
+with open('../rawdata/MT_derangements_fykd_findn.csv', 'at') as csv_file:
 	writer = csv.writer(csv_file)
 	writer.writerow(column_names)
 	for i in range(len(result)):
