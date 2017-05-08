@@ -146,7 +146,7 @@ def testSeed(ss, nn):
     prng = np.random
     prng.seed(ss)
 
-    sampling_func = lambda n: permute_indices(n, prng)
+    sampling_func = lambda n: fykd(np.array(range(n)), prng)
     res = sequential_derangement_test(sampling_func, n=nn, alpha=0.05/2, beta=0, multiplier=1.01)
     return ["MT", "permute_indices", ss, nn, res['decision_upper'], res['LR_upper'][-1], res['steps_upper'],
             res['decision_lower'], res['LR_lower'][-1], res['steps_lower']]    
