@@ -1,6 +1,6 @@
 ################################################################################
 # SLURM Array Job 1
-# Conditional SPRT of sample probabilities (multinomial equal p), MT, n=13, k=3, s = (5,10,20), PIKK
+# Conditional SPRT of sample probabilities (multinomial equal p), MT, n=13, k=3, s = half of 13C3, PIKK
 ################################################################################
 
 import numpy as np
@@ -15,7 +15,7 @@ from sample import PIKK, sample_by_index
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 100)
-s = [5, 10, 20]
+s = [int(comb(13, 3)/4)]
 column_names = ["prng", "algorithm", "seed", "n", "k"]
 for ss in s:
     column_names.append("decision_s" + str(ss))
@@ -28,7 +28,7 @@ for ss in s:
 ################################################################################
 
 def sequential_multinomial_conditional_test(sampling_function, alpha, beta, multiplier, \
-                                s, maxsteps=10**8):
+                                s, maxsteps=10**7):
     '''
     Conduct Wald's SPRT for multinomial distribution, conditional on samples being in the
     top or bottom s most frequent categories
@@ -125,8 +125,9 @@ def testSeed(ss, n, k, s):
     prng = np.random
     prng.seed(ss)
     
+    print("seed = " + str(ss))
     sampling_func = lambda: PIKK(n, k, prng)
-    res = sequential_multinomial_conditional_test(sampling_func, alpha=0.05, beta=0, multiplier=1.01, s=s)
+    res = sequential_multinomial_conditional_test(sampling_func, alpha=0.05, beta=0, multiplier=1.01, s=s, maxsteps=10**5)
 
     unpack = ["MT", "PIKK", ss, n, k]
     for svalue in s:
@@ -141,9 +142,11 @@ def testSeed(ss, n, k, s):
 def wrapper(i):
     return(testSeed(seed_values[i], n=13, k=3, s=s))
     
+
 ################################################################################
 # Set up engines
 ################################################################################
+
 arrayid = int(os.environ['SLURM_ARRAY_TASK_ID'])
 mycluster = "cluster-" + str(arrayid)
 
@@ -166,7 +169,6 @@ mydict = dict(seed_values = seed_values,
               sequential_multinomial_conditional_test = sequential_multinomial_conditional_test,
               s = s)
 dview.push(mydict)
-
 
 ################################################################################
 # Execute

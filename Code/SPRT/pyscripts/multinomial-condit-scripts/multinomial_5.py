@@ -1,6 +1,6 @@
 ################################################################################
 # SLURM Array Job 5
-# Conditional SPRT of sample probabilities (multinomial equal p), SHA256, n=13, k=3, s = (5,10,20), PIKK
+# Conditional SPRT of sample probabilities (multinomial equal p), SHA256, n=13, k=3, s = half of 13C3, PIKK
 ################################################################################
 
 import numpy as np
@@ -16,7 +16,7 @@ from sha256prng import SHA256
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
 seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
-s = [5, 10, 20]
+s = [int(comb(13, 3)/4)]
 column_names = ["prng", "algorithm", "seed", "n", "k"]
 for ss in s:
     column_names.append("decision_s" + str(ss))
@@ -126,7 +126,7 @@ def testSeed(ss, n, k, s):
     prng = SHA256(ss)
     
     sampling_func = lambda: PIKK(n, k, prng)
-    res = sequential_multinomial_conditional_test(sampling_func, alpha=0.05, beta=0, multiplier=1.01, s=s)
+    res = sequential_multinomial_conditional_test(sampling_func, alpha=0.05, beta=0, multiplier=1.01, s=s, maxsteps=10**5)
 
     unpack = ["SHA256", "PIKK", ss, n, k]
     for svalue in s:
