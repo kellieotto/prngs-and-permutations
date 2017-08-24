@@ -10,10 +10,11 @@ import os
 
 import sys
 sys.path.append('../../modules')
+sys.path.append('../../../modules')
 from sample import permute_indices, fykd
 
 np.random.seed(347728688) # From random.org Timestamp: 2017-01-19 18:22:16 UTC
-seed_values = np.random.randint(low = 1, high = 2**32, size = 100)
+seed_values = np.random.randint(low = 1, high = 2**32, size = 1000)
 n_values = [500, 1000, 1500, 2000, 2500, 3000]
 seed_n = [(x, y) for x in seed_values for y in n_values]
 column_names = ["prng", "algorithm", "seed", "n", "decision_upper", "LR_upper", "steps_upper",
@@ -40,7 +41,7 @@ def check_derangement(vec, perm):
     return not any(np.equal(vec, perm))
 
 
-def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=10**6):
+def sequential_derangement_test(sampling_function, n, alpha, beta, multiplier, maxsteps=2*1e5):
     '''
     Conduct Wald's SPRT for whether derangements occur more or less frequently than 1/e
     H_0: derangements occur with equal frequency (p approx 1/e)
