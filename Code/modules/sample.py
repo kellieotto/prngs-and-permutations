@@ -19,12 +19,26 @@ def permute_indices(n, gen=np.random):
     return np.argsort(gen.random(n))
 
 
-def fykd(a, gen=np.random):
+def fykd_slow(a, gen=np.random):
     '''
     Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
     '''
     for i in range(len(a)-1):
         J = gen.randint(i,len(a))
+        a[i], a[J] = a[J], a[i]
+    return(a)
+
+
+def fykd(a, gen=np.random):
+    '''
+    Fisher-Yates-Knuth-Durstenfeld shuffle: permute a in place
+    '''
+    n = len(a)
+    rand = gen.random(n-1)
+    ind = np.array(range(n-1))
+    JJ = np.array(ind + rand*(n - ind), dtype = int)
+    for i in range(n-1):
+        J = JJ[i]
         a[i], a[J] = a[J], a[i]
     return(a)
 
