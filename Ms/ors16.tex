@@ -700,6 +700,29 @@ Conversely, in most cases the upper alternative tended to be easier to reject th
 
 
 \section{Discussion}
+
+\begin{table}[h]
+\caption{Key: MT = Mersenne Twister. LCG = linear congruential generator. ANS = "assign a number to each of the $n$ items and sort." The KISS generator combines 4 generators of three types: two multiply-with-carry generators, the 3-shift register SHR3 and the congruential generator CONG. }
+\begin{center}
+\begin{tabular}{l|c|c|c|}
+Package/Lang & default & other & SRS algorithm \\
+\hline
+SAS 9.2 & MT & 32-bit LCG & Floyd's ordered hash table \\ % p 585 of SAS/STAT 9.3 User's Guide: Survey Data Analysis https://books.google.com/books?id=Rwi3m1QJro4C&pg=PA585&lpg=PA585&dq=Floyd?s+ordered+hash+table+algorithm+for+simple+random+sampling&source=bl&ots=BeorFtS0O-&sig=ngvFhIOxWLhBH_RJQtttIdTXPwg&hl=en&sa=X&ved=0ahUKEwj5n4SS9vDVAhULqFQKHXYUDMEQ6AEINTAC#v=onepage&q=simple%20random%20sample&f=false
+SPSS 20.0 & 32-bit LCG & MT1997ar & truncate + random indices \\ % https://www.ibm.com/support/knowledgecenter/en/SSLVMB_20.0.0/com.ibm.spss.statistics.help/alg_csselect_systematic_algorithm.htm
+SPSS $\leq$ 12.0 & 32-bit LCG & & \\
+Stata 13 & KISS 32 & & PIKK \\
+Stata 14 & MT & & PIKK \\
+R & MT & & truncate + random indices \\
+Python \texttt{random} & MT & & discard bits + random indices \\
+Python \texttt{random} & MT & & discard bits + shuffle indices, keep $k$ \\
+Matlab & MT & & truncate + PIKK
+\end{tabular}
+\end{center}
+\label{default}
+\end{table}%
+
+
+
 \subsection{Best Practices}
 
 \bibliographystyle{plainnat}
