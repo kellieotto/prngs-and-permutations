@@ -10,6 +10,7 @@ import numpy as np
 import random
 # Import library of cryptographic hash functions
 import hashlib
+import cython
 
 # Define useful constants
 BPF = 53        # Number of bits in a float
@@ -77,9 +78,9 @@ class BaseRandom(random.Random):
         """
         >>> r = SHA256(5)
         >>> repr(r)
-        'SHA256 PRNG with seed 5'
+        'SHA256 PRNG with seed 5 and counter 0'
         >>> str(r)
-        'SHA256 PRNG with seed 5'
+        'SHA256 PRNG with seed 5 and counter 0'
         """
         stringrepr = self.__class__.__name__ + " PRNG with seed " + str(self.baseseed) + " and counter " + str(self.counter)
         return stringrepr
@@ -105,13 +106,51 @@ class SHA256(BaseRandom):
     >>> r.seed(22, 3)
     >>> r.getstate()
     (22, 3)
+    >>> r.hashfun
+    'SHA-256'
+    >>> r.basehash.__class__.__name__
+    'HASH'
     """
     
-#    def __init__(self, seed=None):
-#        self.__init__(seed=seed)
-#        self.hashfun = "SHA-256"
-        
-        
+    def __init__(self, seed=None):
+        self.seed(seed)
+        self.hashfun = "SHA-256"
+        self._basehash()
+
+
+    def _basehash(self):
+        if self.baseseed is not None:
+            hashinput = (str(self.baseseed) + ',').encode()
+            self.basehash = hashlib.sha256(hashinput)
+        else:
+            self.basehash = None
+
+
+    def seed(self, baseseed=None, counter=0):
+        """Initialize internal state from hashable object.
+
+        None or no argument seeds from current time or from an operating
+        system specific randomness source if available.
+
+        If a is not None or an int or long, hash(a) is used instead.
+		
+        a only gets changed at initiation. Counter gets updated each time
+        the prng gets called.
+        """
+        if not hasattr(self, 'baseseed') or baseseed != self.baseseed:    
+            self.baseseed = baseseed
+            self._basehash()    
+        self.counter = counter
+
+
+    def setstate(self, state):
+        """
+        Set the state (seed and counter)
+        """
+        (self.baseseed, self.counter) = (int(val) for val in state)
+        self._basehash()
+
+
     def random(self, size=None):
         """
         Generate random numbers between 0 and 1.
@@ -142,14 +181,15 @@ class SHA256(BaseRandom):
         >>> r.nextRandom() == expected
         True
         """
-        hash_input = (str(self.baseseed) + "," + str(self.counter)).encode('utf-8')
+        hashfun = self.basehash.copy()
+        hashfun.update(str(self.counter).encode())
         # Apply SHA-256, interpreting hex output as hexadecimal integer
         # to yield 256-bit integer (a python "long integer")
-        hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
+        hash_output = int(hashfun.hexdigest(),16)
         self.next()
         return(hash_output)
-        
-    
+
+
     def randint(self, a, b, size=None):
         """
         Generate random integers between a (inclusive) and b (exclusive).
@@ -158,7 +198,7 @@ class SHA256(BaseRandom):
 
         >>> r = SHA256(12345678901234567890)
         >>> r.randint(1, 1000, 5)
-        array([405, 426, 921, 929,  56])
+        array([ 86, 248, 969, 467, 708])
         """
         assert a <= b, "lower and upper limits are switched"
         
