@@ -8,7 +8,6 @@ def PIKK(n, k, gen=np.random):
     '''
     
     return set(np.argsort(gen.random(n))[0:k])
-	
 
 
 def permute_indices(n, gen=np.random):
@@ -43,12 +42,23 @@ def fykd(a, gen=np.random):
     return(a)
 
 
+def fykd_sample_slow(n, k, gen=np.random):
+    a = list(range(1, n+1))
+    a = fykd(a)
+    return(a[:k])
+
+
 def fykd_sample(n, k, gen=np.random):
     '''
     Use fykd to sample k out of 1, ..., n
     '''
     a = list(range(1, n+1))
-    a = fykd(a, gen=gen)
+    rand = gen.random(k)
+    ind = np.array(range(k))
+    JJ = np.array(ind + rand*(n - ind), dtype = int)
+    for i in range(k):
+        J = JJ[i]
+        a[i], a[J] = a[J], a[i]
     return(a[:k])
 
 
