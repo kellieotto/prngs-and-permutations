@@ -5,6 +5,7 @@ from scipy.misc import comb
 from ipyparallel import Client
 from serial_test import serial_perm_distr, test_poisson, compute_bincounts
 import csv
+import sys
 sys.path.append('../modules')
 from sha256prng import SHA256
 
