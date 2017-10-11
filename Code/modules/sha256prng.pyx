@@ -12,12 +12,24 @@ import random
 # Import library of cryptographic hash functions
 import hashlib
 import cython
+from sha256 import sha256 as c_sha256
 
 # Define useful constants
 cdef int BPF = 53        # Number of bits in a float
 cdef double RECIP_BPF = 2**-BPF
 cdef int HASHLEN = 256 # Number of bits in a hash output
 cdef double RECIP_HASHLEN = 2.0**-256
+const_byte = [bytes([i]) for i in range(1, 256)]
+
+def int_from_hash(hash):
+    '''
+    Convert byte(s) to ints
+    '''
+    if isinstance(hash, list):
+        hash_int = np.array([int.from_bytes(h, 'little') for h in hash], dtype=np.float)
+    else:
+        hash_int = int.from_bytes(hash, 'little')
+    return hash_int
 
 ################################################################################
 ############################## Base PRNG Class #################################
@@ -42,7 +54,7 @@ class BaseRandom(random.Random):
         system specific randomness source if available.
 
         If a is not None or an int or long, hash(a) is used instead.
-		
+        
         a only gets changed at initiation. Counter gets updated each time
         the prng gets called.
         """
@@ -134,7 +146,7 @@ class SHA256(BaseRandom):
         system specific randomness source if available.
 
         If a is not None or an int or long, hash(a) is used instead.
-		
+        
         a only gets changed at initiation. Counter gets updated each time
         the prng gets called.
         """
@@ -171,10 +183,13 @@ class SHA256(BaseRandom):
         cdef np.ndarray[double, ndim=1] res = np.empty(size2, dtype=np.float)
         
         if size==1:
-            return self.nextRandom()*RECIP_HASHLEN
+            hash_output = self.nextRandom()
+            return int_from_hash(hash_output)*RECIP_HASHLEN
         else:
+            hash_output = []
             for i in range(size2):
-                res[i] = self.nextRandom()*RECIP_HASHLEN
+                hash_output.append(self.nextRandom())
+            res = int_from_hash(hash_output)*RECIP_HASHLEN
             return np.reshape(res, size)
             
     
@@ -188,11 +203,10 @@ class SHA256(BaseRandom):
         >>> r.nextRandom() == expected
         True
         """
-        hashfun = self.basehash.copy()
-        hashfun.update(str(self.counter).encode())
+        self.basehash.update(const_byte[self.counter % 255])
         # Apply SHA-256, interpreting hex output as hexadecimal integer
         # to yield 256-bit integer (a python "long integer")
-        hash_output = int(hashfun.hexdigest(),16)
+        hash_output = self.basehash.digest()
         self.next()
         return(hash_output)
 
@@ -214,29 +228,13 @@ class SHA256(BaseRandom):
         assert a <= b, "lower and upper limits are switched"
         
         if size==1:
-            return a + (self.nextRandom() % (b-a))
+            return a + (int_from_hash(self.nextRandom()) % (b-a))
         else:
+            hash_output = []
             for i in range(size2):
-                res[i]= a + (self.nextRandom() % (b-a))
+                hash_output.append(self.nextRandom())
+            res = np.array(a + (int_from_hash(hash_output) % (b-a)), dtype=np.int32)
             return np.reshape(res, size)
-
-        
-        
-################################################################################
-############################## some sample code ################################
-################################################################################
-
-# pseudo-random number generator
-def toy_example():
-    seed = 12345678901234567890
-    count = 0
-    hash_input = (str(seed) + "," + str(count)).encode('utf-8')
-    # Apply SHA-256, interpreting hex output as hexadecimal integer
-    # to yield 256-bit integer (a python "long integer")
-    hash_output = int(hashlib.sha256(hash_input).hexdigest(),16)
-
-    print(hash_output*RECIP_HASHLEN)
-    count += 1
 
 
 if __name__ == "__main__":

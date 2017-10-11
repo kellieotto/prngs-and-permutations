@@ -7,6 +7,8 @@ ext_modules = [
     Extension("sha256prng", ["sha256prng.pyx"],
     include_dirs=[numpy.get_include()]),
     Extension("sample", ["sample.pyx"],
+    include_dirs=[numpy.get_include()]),
+    Extension("sha256", ["sha256.pyx"],
     include_dirs=[numpy.get_include()])
 ]
 
