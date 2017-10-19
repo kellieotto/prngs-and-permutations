@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from scipy.stats import chisquare
+from scipy.stats import chisquare, poisson
 from scipy.misc import comb
 
 
@@ -57,6 +57,9 @@ def bayes_perm_ev(n):
     return ev
 
 
+
+
+
 def serial_perm_distr(n, reps=10**5, gen=np.random, dist = 'equal'):
     """
     Compute the distance between permutations
@@ -80,7 +83,11 @@ def serial_perm_distr(n, reps=10**5, gen=np.random, dist = 'equal'):
 	
     for rr in range(reps):
         new_perm = prev_perm.copy()
-        gen.shuffle(new_perm)
+        try:
+            gen.shuffle(new_perm)
+        except:
+            print("Can't get any more random numbers")
+            return distr[:rr]
         measure = distance_fun(new_perm, prev_perm)
         distr[rr] = measure
         prev_perm = new_perm
@@ -105,11 +112,13 @@ def fixed_perm_probabilities(n, k):
     for i = 0, 1, ..., k
     """
     perm_count = np.zeros(k+1)
-    derangements = count_derangements(n)
+    fp_prob = np.ones(n+1)
+    for nn in range(1, n):
+        fp_prob[nn] = -1/nn
+    fp_prob = np.cumprod(fp_prob)
     for i in range(k+1):
-        perm_count[i] = derangements[n-i]/(math.factorial(i)*math.factorial(n-i))
+        perm_count[i] = (1/math.factorial(i)) * sum(fp_prob[:(n-k+1)])
     return perm_count
-
 
 	
 def serial_perm_equal_params(n):
@@ -125,6 +134,21 @@ def serial_perm_equal_params(n):
     
 
 def compute_bincounts(distr, nmax = 11):
+    """
+    >>> compute_bincounts([1, 1, 1, 2, 2], nmax=2)
+    array([0, 3, 2])
+    >>> compute_bincounts([1, 1, 1, 2, 2, 11])
+    array([0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+    >>> compute_bincounts([1, 1, 1, 2, 2, 11], nmax=2)
+    array([0, 3, 3])
+    >>> compute_bincounts([1, 1, 1, 2, 2, 11], nmax=12)
+    array([0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+    >>> compute_bincounts([1, 3, 4, 2, 11], nmax=2)
+    array([0, 1, 4])
+    >>> compute_bincounts([1, 3, 4, 2, 11], nmax=3)
+    array([0, 1, 1, 3])
+    """
+    
     ct = np.zeros(nmax+1, dtype=int)
     np_ct = np.bincount(distr)
     if len(np_ct) < nmax+1:
@@ -138,7 +162,22 @@ def compute_bincounts(distr, nmax = 11):
     return ct
     
 
-def test_poisson(distr, nmax=11):
+def test_poisson(distr, chisq_distr, nmax=11):
+    """
+    distr = np.array([1,2,3,4,4,4,11], dtype=int)
+    cell_counts = compute_bincounts(distr, nmax=3)
+    np.testing.assert_equal(cell_counts, array([0, 1, 2, 5]))
+    
+    true = poisson.pmf(mu=1, k=range(11))
+    computed = np.exp(-1)*np.array([1./math.factorial(k) for k in range(11)])
+    np.testing.assert_almost_equal(true, computed)
+    
+    expected_freq = np.exp(-1)*np.array([1./math.factorial(k) for k in range(3)])
+    expected_freq = np.append(expected_freq, 1 - np.sum(expected_freq))
+    np.testing.assert_equal(np.sum(expected_freq), 1)
+    
+    
+    """
     distr = np.array(distr, dtype=int)
     cell_counts = compute_bincounts(distr, nmax)
     reps = len(distr)
@@ -146,9 +185,24 @@ def test_poisson(distr, nmax=11):
     expected_freq = np.append(expected_freq, 1 - np.sum(expected_freq))
     expected_counts = reps*np.array(expected_freq)
     
-    res = chisquare(cell_counts, expected_counts)
-    return res[1]
-    
+    res = exact_chisq_pvalue(cell_counts, expected_counts, chisq_distr)
+    return res
+
+
+def exact_chisq_distr(N=2*10**5, nmax=11, B=10000):
+    expected_freq = np.exp(-1)*np.array([1./math.factorial(k) for k in range(nmax)])
+    expected_freq = np.append(expected_freq, 1 - np.sum(expected_freq))
+    sim = np.random.multinomial(n=N, pvals=expected_freq, size=B)
+    expected_counts = N*np.array(expected_freq)
+    chisq_distr = list(map(lambda x: chisquare(x, expected_counts)[0], sim))
+    return chisq_distr
+
+
+def exact_chisq_pvalue(cell_counts, expected_counts, chisq_distr):
+    res = chisquare(cell_counts, expected_counts)[0]
+    pvalue = np.mean(chisq_distr >= res)
+    return pvalue
+
 
 def test_theoretical(distr, n):
     """
@@ -170,3 +224,8 @@ def test_theoretical(distr, n):
         expected_counts = np.delete(expected_counts, ind)
     res = chisquare(cell_counts, expected_counts)
     return res[1]
+    
+    
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
