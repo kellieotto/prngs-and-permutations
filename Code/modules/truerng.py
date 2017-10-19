@@ -10,12 +10,16 @@ from nistbeacon import NistBeacon
 import quantumrandom
 import requests
 import random
+import os
 
 # Define useful constants
 BPF = 53        # Number of bits in a float
 RECIP_BPF = 2**-BPF
+BPI = 16 # Bits per integer
+RECIP_BPI = 2**-BPI
 BITLEN = 512 # Number of bits in a hash output
 RECIP_BITLEN = 2**-BITLEN
+DATA_PATH = os.path.join(os.path.dirname(__file__), "truerng-bytes")
 
 ################################################################################
 ############################# NIST RNG Class ###################################
@@ -175,9 +179,9 @@ class quantumRandom(random.Random):
         size controls the number of ints generated. If size=None, just one is produced.
         """
         if size==None:
-            return self.nextRandom()*RECIP_BITLEN
+            return self.nextRandom()*RECIP_BPI
         else:
-            return np.reshape(np.array([self.nextRandom()*RECIP_BITLEN for i in np.arange(np.prod(size))]), size)
+            return np.reshape(np.array([self.nextRandom()*RECIP_BPI for i in np.arange(np.prod(size))]), size)
             
             
     def nextRandom(self):
@@ -199,4 +203,94 @@ class quantumRandom(random.Random):
         if size==None:
             return a + (self.nextRandom() % (b-a))
         else:
-            return np.reshape(np.array([a + (self.nextRandom() % (b-a)) for i in np.arange(np.prod(size))]), size)        
+            return np.reshape(np.array([a + (self.nextRandom() % (b-a)) for i in np.arange(np.prod(size))]), size)
+            
+            
+################################################################################
+########################## Read RNGs from file #################################
+################################################################################
+
+class TrueRandom(random.Random):
+    '''Random number generator base class'''
+
+    def __init__(self, seed=None, counter=0):
+        """Initialize an instance.
+        """
+        self.counter = counter
+        if seed == None:
+            self.seed = 0 # this is the first possible timestamp
+        else:
+            self.seed = seed
+        try:
+            fname = os.path.join(DATA_PATH, "block" + str(self.seed) + ".rng")
+            self.file = open(fname, "rb")
+        except ValueError:
+           print("Bad seed -- file with that number does not exist")
+    
+    def next(self):
+        """
+        Update the counter
+        """
+        self.counter += 1
+
+
+    def getstate(self):
+        return (self.seed, self.counter)
+
+
+    def jumpahead(self, n):
+        """
+        Jump ahead n steps
+        """
+        self.counter += n
+        self.file.read(n)
+            
+    def __repr__(self):
+        """
+        >>> r = TrueRandom()
+        >>> repr(r)
+        'True RNG from file block0.rng'
+        >>> str(r)
+        'True RNG from file block0.rng'
+        """
+        stringrepr = "True RNG from file block" + str(self.seed) + ".rng"
+        return stringrepr
+        
+        
+    def random(self, size=None):
+        """
+        Generate random numbers between 0 and 1.
+        size controls the number of ints generated. If size=None, just one is produced.
+        """
+        if size==None:
+            return self.nextRandom()*RECIP_BPI
+        else:
+            return np.reshape(np.array([self.nextRandom()*RECIP_BPI for i in np.arange(np.prod(size))]), size)
+            
+            
+    def nextRandom(self):
+        """
+        Generate the next random number
+        """
+        val = self.file.read(2)
+        self.next()
+        return (val[0])*2**8 + (val[1])
+
+
+    def randint(self, a, b, size=None):
+        """
+        Generate random integers between a (inclusive) and b (exclusive).
+        size controls the number of ints generated. If size=None, just one is produced.
+        """
+        assert a <= b, "lower and upper limits are switched"
+        
+        if size==None:
+            return a + (self.nextRandom() % (b-a))
+        else:
+            return np.reshape(np.array([a + (self.nextRandom() % (b-a)) for i in np.arange(np.prod(size))]), size)
+            
+    
+    def finish(self):
+        self.file.close()
+            
+            
