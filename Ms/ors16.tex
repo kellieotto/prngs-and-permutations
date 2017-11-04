@@ -682,6 +682,7 @@ Differences in rejection rates between the PRNGs and sampling algorithms were no
 \begin{center}
 \includegraphics[width=0.8\textwidth]{fig/sprt-multinomial-rejection-rate.png}
 \caption{Rejection rate of the multinomial SPRT for MT, SD, and SHA256, using the PIKK and sample by index algorithms to generate samples of size $3$ out of $13$. We varied $s$, a parameter of the test which specifies the number of ``most frequent'' or ``least frequent'' categories considered.  We rejected the null hypothesis less often than the specified type I error rate of $2.5\%$.}
+\label{fig:multinomial_sprt_rejections}
 \end{center}
 \end{figure}
 
@@ -695,7 +696,30 @@ In most cases, the lower alternative tended to be easier to reject (fewer steps)
 Conversely, in most cases the upper alternative tended to be easier to reject than the lower alternative for sampling by index, suggesting that this algorithm may favor certain samples.
 
 \subsection{Derangement SPRT}
-\todo{}
+We used the SPRT to test whether derangements occur more or less often than expected due to chance alone.
+We compared the three PRNGs above and used both the method of permuting indices and the FYKD shuffle to generate random permutations
+of the list $(1, 2, \dots, n)$.
+We increased $n$ from $500$ to $3000$ in increments of $500$.
+The specified type I error rate was $2.5\%$ for the upper and lower alternatives.
+We ran the test for 1000 different seeds for each PRNG and algorithm.
+
+Figure~\ref{fig:derangement_sprt_rejections} shows the rejection rates for the upper and lower tailed alternatives for each value of $n$.
+MT and SHA256 did not reject more often than expected under the null hypothesis
+(for some of the experiments, the rejection rate is slightly higher than $2.5\%$ but it is within the expected margin of error of $\sqrt{0.025\times 0.975/1000} \approx 0.5\%$).
+This was true for both sampling algorithms.
+On the other hand, the Super-Duper LCG paired with the FYKD shuffle had rejection rates much higher than $2.5\%$ for $n\geq 1500$.
+Both alternatives were rejected more often than $2.5\%$, but the upper-tailed alternative was rejected much more frequently.
+This suggests that SD fails at producing permutations uniformly: depending on the seed, it may produce too many or too few
+derangements compared with what a true random generator would produce.
+
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=0.8\textwidth]{fig/sprt-derangement-rejection-rate.png}
+\caption{Rejection rate of the derangements SPRT for MT, SD, and SHA256, using the permute indices and FYKD shuffle algorithms to generate random permutations. We varied $n$, the length of the list being permuted.  The specified type I error rate was $2.5\%$ for the upper and lower alternatives.}
+\label{fig:derangement_sprt_rejections}
+\end{center}
+\end{figure}
 
 \subsection{Serial correlation test}
 We generated $2 \times 10^5$ permutations of the numbers $(1, 2, \dots, N)$, for $N = 200, 500, 1000, $ and $2100$ 
