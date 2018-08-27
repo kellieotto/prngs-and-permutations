@@ -51,151 +51,78 @@
 
 
 \begin{abstract}
-
-The algorithm that R (Version 3.5.0) uses to generate uniform random integers is inaccurate.
-This paper describes why the algorithm gives unequal weight to different values.
-The magnitude of the problem can be disastrous for certain ranges of integers:
-in the worst case, some integers may be sampled twice as frequently than others.
-We present another algorithm for generating uniform random integers that does not have this bias.
+R (Version 3.5.0) generates random integers between $1$ and $m$
+by multiplying random floats by $m$, taking the floor, and adding $1$ to the result.
+Quantization effects inherent in this approach result in a non-uniform distribution: 
+different integers between $1$ and $m$ generally have different probabilities.
+The difference can be substantial.
+Because the \texttt{sample()} function in R relies on generating random integers,
+random sampling in R is also biased.
+There is an easy fix, namely, to use random bits to construct rather than random floats.
+That is the strategy taken in Python's \texttt{numpy.random.randint()} function.
 \end{abstract}
 
 
 %\newpage
 
 \section{Introduction}
-
-Sampling is a foundational idea in Statistics that is critical for the theory of surveys, permutation testing, the bootstrap, MCMC, and many more methods.
-The theory and implementation of these methods depend on the ability to draw random samples with specific probabilities.
-In particular, many methods require \textit{uniform} random sampling, i.e. with equal probability of occurrence.
-
-The algorithm that R (Version 3.5.0) \citep{R_2018} uses to generate uniform random integers from its PRNGs is inaccurate.
-Table~\ref{tab} shows that in the worst case, some integers are twice as likely to be selected as others.
-These biases are passed into the functions to draw random samples, making certain samples more likely than others.
-Statistical methods that rely on the ability to draw random samples uniformly will therefore be biased.
-Sampling using the command \texttt{sample(1:m, k, replace=FALSE)} may not weight all $m$ values equally.
-
-
-Section~\ref{sec:algo} describes the problematic algorithm to convert pseudorandom numbers to integers on a particular interval and
-presents a better way that is guaranteed to produce integers with equal probability.
-Section~\ref{sec:sample} shows the magnitude of the problem for varying ranges of integers.
-
-\section{Algorithms for generating random integers}\label{sec:algo}
-Pseudorandom number generators (PRNGs) are deterministic algorithms that produce sequences of numbers that are statistically indistinguishable from truly random uniform numbers.
-PRNGs typically produce $w$-bit integers, which are normalized to floats $U\in\{0, 2^{-w}, 2\times 2^{-w}, ..., 1 - 2^{-w}\}$ between $0$ and $1$.
-(Some PRNGs in R have $w=25$, but most have $w=32$.)
-
-R calls the function \texttt{unif\_rand} to generate pseudorandom numbers with word size at most $w=32$.
-To generate integers with a larger word size, it is necessary to augment their precision.
-This can be done by combining two $w$-bit integers to obtain a $(2w-1)$-bit integer.
-The \texttt{ru} function combines two pseudorandom numbers with word length $w$ to produce one with word length $2w - 1$.
-This output has word length at least $w=50$ bits and at most $w=53$ bits (depending the chosen PRNG). 
-We will revisit these functions in Section~\ref{sec:sample}.
-
-Many algorithms for drawing a random sample of size $k$ out of $m$ items
- rely on independent random integers uniformly distributed on $\{1, \dots, m\}$.
-Additional algorithms are needed to convert $w$-bit integers output by PRNGs to integers on the range $\{1, \dots, m\}$.
-
-\subsection{Problematic algorithm}\label{sec:flawed}
-A standard way to generate a random integer on the range $\{1, \dots, m\}$ is to start with $X \sim U[0,1)$ and define $Y \equiv 1 + \lfloor mX \rfloor$. 
-In theory, that is fine when $X$ is truly uniform on the interval $[0,1)$.
-In practice, $X$ has a discrete uniform distribution, derived by normalizing a pseudorandom number that is uniform on $w$-bit integers $\{0, 1, \ldots, 2^w - 1\}$.
-Then, unless $m$ is a power of 2, the distribution of $Y$ differs from uniform on $\{1, \ldots, m\}$. 
-
-%\begin{lemma}\label{lemma:randint}
-%For $m < 2^w$, the ratio of the largest to smallest selection probability is, to first order,  $1+ m 2^{-w}$. (See, e.g., Knuth v2 3.4.1.A.)
-%\end{lemma}
-%
-%
-%
-%\begin{proof}[Proof of Lemma~\ref{lemma:randint}]
-%Define $\tilde{X}$ to be a uniform random integer on $\{0, 1, \dots, 2^w - 1\}$.
-%The selection probability for a particular integer value is 
-%
-%\begin{align*}
-%\pr\left(Y = y\right) &= \pr\left(1 + \lfloor mX \rfloor = y\right) \\
-%&= \pr\left(y-1 \leq mX < y\right) \\
-%&= \pr\left(\tilde{X} < \frac{y2^w}{m}\right) - \pr\left(\tilde{X} \leq \frac{(-1)y2^w}{m}\right)\\
-%&= \pr\left(\tilde{X} < \left\lfloor\frac{y2^w}{m}\right\rfloor\right) - \pr\left(\tilde{X} \leq \left\lfloor\frac{(y-1)2^w}{m}\right\rfloor\right)\\
-%&= 2^{-w}\left(k^+(y-1)- k^-(y-1)\right)
-%\end{align*}
-%
-%\noindent where, for fixed $m$, we define $k^-(i) \equiv \min \{k: k2^{-w} \geq i/m\}$ for all $i$,
-%$k^+(i) \equiv \max \{k : k2^{-w} < i/m \} = k^-(i+1)-1$ for $i = 0, \dots, m-1$
-%and $k^+(m) \equiv 2^w$.
-%The maximum ratio of selection probabilities is 
-%
-%\begin{align*}
-%\max_{i, j \in \{0, \ldots, m-1\}} \frac{k^+(i) - k^-(i)}{k^+(j) - k^-(j)}
-%&= \frac{ \max_{i=0}^{m-1} (k^+(i) - k^-(i))}{\min_{i=0}^{m-1} (k^+(i) - k^-(i))} \\
-%&= \frac{ \max_{i=0}^{m-1} (k^+(i) - k^+(i+1) + 1)}{\min_{i=0}^{m-1} (k^-(i+1) - k^-(i) - 1)} \\
-%&= \frac{\lceil 2^w/m \rceil + 1}{\lfloor 2^w/m \rfloor -1}.
-%\end{align*}
-%\end{proof}
-%\todo{is this proof right? seems wrong}
-%
-%
-%For $m = 10^9$ and $w=32$, $1 + m 2^{-w} \approx 1.233$. 
-
-The following theorem gives an approximate upper bound on the largest ratio of selection probabilities produced by this algorithm.
-If $Y$ were perfectly uniform, then this ratio would be $1$.
+A textbook way to generate a random integer on the range $\{1, \dots, m\}$ is to start with $X \sim U[0,1)$ and define $Y \equiv 1 + \lfloor mX \rfloor$. 
+If $X$ is truly uniform on the interval $[0,1)$, $Y$ is then uniform on $\{1, \dots, m\}$.
+However, if $X$ has a discrete distribution derived by scaling a pseudorandom binary integer, 
+the resulting distribution is not uniformly distributed on 
+$\{1, \ldots, m \}$ even if the underlying PRNG is perfect (unless $m$ is a power of 2).
 
 \begin{theorem}[\citet{knuth_art_1997}] % p.133
-There exists $m < 2^w$ such that, to first order, the ratio of the largest selection probability to the smallest selection probability is $1 + m2^{-w+1}$.
+Suppose $X$ is uniformly distributed on $w$-bit binary numbers, and
+let $Y_m \equiv 1 + \lfloor mX \rfloor$.
+Let $p_+(m) = \max_{1 \le k \le m} \Pr\{Y_m = k\}$ and $p_-(m) = \min_{1 \le k \le m} \Pr\{Y_m = k\}$.
+There exists $m < 2^w$ such that, to first order, 
+$p_+(m)/p_-(m) = 1 + m2^{-w+1}$.
 \end{theorem}
 
+The algorithm that R (Version 3.5.0) \citep{R_2018} uses to generate uniform random integers
+has this issue (albeit in a slightly more complicated form, because, depending on $m$,
+R starts with pseudorandom binary integers of different lengths). 
+Because \texttt{sample()} relies on random integers, it inherits the problem.
 
+R uses \texttt{unif\_rand} to generate pseudorandom numbers with word size at most $w=32$.
+To generate integers with a larger word size, R extends the precision by combining two $w$-bit integers to obtain an integer with 50 to 53 bits (depending the chosen PRNG). 
+It then generates
 
-\subsection{A better algorithm}
-A more accurate way to generate random integers on $\{1, \dots, m\}$ is to use pseudorandom bits directly. 
+A better way to generate random integers on $\{1, \dots, m\}$ is to use pseudorandom bits directly. 
 The integer $m$ can be represented with $\mu = \lceil \log_2(m) \rceil$ bits. 
-To generate a pseudorandom integer at most $m$, first generate $\mu$ pseudorandom bits (for instance, by taking the most significant $\mu$ bits from the PRNG output).  
-If that binary number is larger than $\mu$, then discard it and repeat until getting $\mu$ bits that represent an integer less than or equal to $m$.\footnote{
-See \citet{knuth_art_1997} p. 114.
+To generate a pseudorandom integer between $1$ and $m$, first generate $\mu$ pseudorandom bits (for instance, by taking the most significant $\mu$ bits from the PRNG output).  
+If that binary number is larger than $\mu$, then discard it and repeat until getting $\mu$ bits that represent an integer less than or equal to $m$.\footnote{%
+   See \citet{knuth_art_1997} p.114.
 }
-This procedure may be inefficient, as it can potentially require throwing out half of draws if $m$ is close to a power of $2$, but the resulting integers will actually be uniformly distributed.
+This procedure might discard almost half the draws if $m$ is slightly larger than a power of $2$,
+but if the input bits are IID Bernoulli(1/2), the resulting integers will actually be uniformly distributed.
 
 To summarize the steps for generating a pseudorandom integer on $\{1, \ldots m\}$ from a pseudorandom $w$-bit integer:
 \begin{enumerate}
 \item Set $\mu = \log_2(m-1)$.
 \item Define a $w$-bit mask consisting of the first $\mu$ bits set to 1 and the remaining $(w-\mu)$ bits set to zero.
-\item Generate a random $w$-bit integer $Y$.
-\item Define $y$ to be the bitwise and of $y$ and the mask.
-\item If $y \le m-1$, output $x = y+1$; otherwise, return to step 3.
+\item Generate a random $w$-bit integer $X$.
+\item Define $Y$ to be the bitwise and of $X$ and the mask.
+\item If $Y \le m-1$, output $Y+1$; otherwise, return to step 3.
 \end{enumerate}
-This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) generates pseudorandom integers.\footnote{
-However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does something else that's biased: it finds the closest integer to $mX$.
+This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) generates pseudorandom integers.\footnote{%
+However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does something else biased: it finds the closest integer to $mX$, where $X$ is a binary fraction between 0 and 1.
 }
 
-\section{Random sampling in R}\label{sec:sample}
-%The PRNGs in R return $w$-bit integers, but additional steps are required to use these values to generate random samples. 
-The sampling algorithms implemented in R rely on uniformly distributed random integers on the set $\{1, 2, \dots, m\}$, for arbitrary positive $m$. 
-R uses the flawed method of generating pseudorandom integers from Section~\ref{sec:flawed}.
-There exist values of $m$ for which some integers occur more frequently than others.
-
-%$\lfloor nU \rfloor$ will not be uniform unless the scaling factor $n$ is a power of two: $nU$ rounds down to certain integers more often than others.
-
-In R, one would generally use the function \texttt{sample(1:m, k, replace=FALSE)} to draw $k$ pseudo-random integers between $1$ and $m$, inclusive, without replacement. 
-More generally, to draw a simple random sample of size $k$ from a list of $m$ values, the syntax is \texttt{sample(values, k, replace=FALSE)}.
-
-The \texttt{sample} function behaves differently for two cases, depending on the level of numerical
-precision needed to generate large enough integers. 
+The R \texttt{sample()} function has a branch in its logic depending on the number of elements
+in the population to be sampled. 
 It uses the function \texttt{ru} when $m >= 2^{31}$ and the function \texttt{rand\_unif} when $m < 2^{31}$.\footnote{
-There is an additional function, \texttt{sample2}, which gets called when $m > 10^7$ and $k < m/2$.
-It also uses this flawed method of generating pseudo-random integers, so we will not treat it separately.
+A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
+It uses the same flawed method of generating pseudo-random integers.
 }
-The issue of nonuniformity is worst when $m$ is just below the cutoff $2^{31}$. 
+The nonuniformity of selection probabilities is largest when $m$ is just below the cutoff $2^{31}$. 
+In that case, \texttt{sample} calls \texttt{unif\_rand}, which gives outputs with word size $w=32$. 
+The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2 billion. 
+Even if $m$ is close to 1 million, the ratio is about $1.0004$.
 
-When $m \ge 2^{31}$, R calls the \texttt{ru} function to produce a pseudorandom number with word length at least $w=50$ bits and at most $w=53$ bits (depending the chosen PRNG). 
-The ratio of selection probabilities only becomes large (on the order of $1+10^{-3}$) for large population sizes, say $m > 2^{40} \approx 10^{12}$. 
-
-The problem is worst for large population sizes just below the threshold $2^{31}$.
- In this case, \texttt{sample} calls \texttt{unif\_rand}, which gives outputs with word size $w=32$. 
- The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2 billion. 
- Even if $m$ is close to 1 million, the ratio is about $1.0004$.
-
-This error in random integer selection probabilities feeds back into the algorithm for sampling. 
-If certain integers have higher probability, then certain samples or permutations will also occur with higher probability.
-
+When $m \ge 2^{31}$, R calls \texttt{ru()}  to produce a pseudorandom number with word length at least $w=50$ bits and at most $w=53$ bits (depending the chosen PRNG). 
+In that branch of the logic, ratio of selection probabilities only becomes large (on the order of $1+10^{-3}$) for large population sizes, say $m > 2^{40} \approx 10^{12}$. 
 
 \begin{table}[h]
 \caption{Maximum ratio of selection probabilities for different population sizes.}
