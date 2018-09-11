@@ -45,7 +45,7 @@
 
 \title{Simple Random Sampling: Not So Simple}
 \author{Kellie Ottoboni and Philip~B. Stark}
-\date{Draft \today}
+\date{\today}
 \begin{document}
 \maketitle
 
@@ -118,11 +118,39 @@ The maximum ratio of selection probabilities approaches $2$ as $m$ increases to 
 Even if $m$ is close to 1 million, the ratio is about $1.0004$.
 
 When $m \ge 2^{31}$, R calls \texttt{ru()}  to produce a pseudorandom number with word length at least $w=50$ bits and at most $w=53$ bits (depending the chosen PRNG). 
-In that branch of the logic, ratio of selection probabilities only becomes large (on the order of $1+10^{-3}$) for large population sizes, say $m > 2^{40} \approx 10^{12}$. 
+The algorithm uses two pseudorandom numbers, $r_1$ and $r_2$, to produce one with greater precision,
+$$ \texttt{ru}() = \frac{\lfloor U r_1 \rfloor + r_2}{U},$$
+
+\noindent where $U = 2^{25}-1$.
+In theory, this method would produce equidistant pseudorandom numbers on $[0, 1)$ by using the entire 53-bit mantissa of floating point numbers.
+It fails due to floating point arithmetic.
+
+To illustrate the issue, suppose that the PRNG generating $r_1$ and $r_2$ produces 4-bit integers and that floating point numbers 
+are represented in base 2 with 4 bits of precision.
+Let $U=2^4$.
+Imagine that $r_1 = 0$, represented as $0.000 \times 2^0$.
+Then the possible values of $\texttt{ru}$ would be equally spaced values, separated by a distance of $U^{-2}$.
+Instead, imagine $r_1$ is the largest value that the PRNG can generate,
+represented as $1.000 \times 2^{-1}$ in floating point.
+Multiplying by $U$ only changes the exponent from $-1$ to $3$.
+In floating point arithmetic, adding $\lfloor U r_1 \rfloor$ to small values of $r_2$ will result in underflow:
+for $r_2 < 1.000 \times 2^{0}$, $\lfloor U r_1 \rfloor + r_2 = \lfloor U r_1 \rfloor$. 
+Moreover, $\lfloor U r_1 \rfloor + 1.000 \times 2^{0} = \lfloor U r_1 \rfloor + 1.001 \times 2^{0} = \lfloor U r_1 \rfloor + 1.111 \times 2^{0}$ and so forth.
+In this case, $\texttt{ru}$ will give equally spaced values separated by a distance of $ U^{-1}$.
+% https://github.com/wch/r-source/blob/5a156a0865362bb8381dcd69ac335f5174a4f60c/src/main/RNG.c
+
+Knuth's theorem no longer applies to the ratio of selection probabilities in the branch of the logic that calls $\texttt{ru}$, as values aren't truly uniformly distributed.
+In fact, the nonuniformity of pseudorandom numbers might exacerbate the pseudorandom integer generation problem further.
+This could be avoided by using pseudorandom bits directly to gain precision, for example by
+concatenating two 32-bit pseudorandom numbers or by using a 64-bit PRNG (\cite{marsaglia_64bit_2004}).
 
 \begin{table}[h]
 \caption{Maximum ratio of selection probabilities for different population sizes $m$. 
-R uses bases its random integers on random binary integers with different numbers of bits (wordlengths) depending on $m$}
+R constructs random integers using random binary integers with different numbers of bits (word lengths) depending on $m$:
+if $m < 2^{31}$, the word length is between $25$ and $32$, otherwise it may be up to $53$ bits.
+The maximum ratio of selection probabilities is based on Knuth's theorem; 
+for $m > 2^{31}$, the maximum may be even larger due to nonuniformity introduced by the \texttt{ru} function.
+}
 \begin{center}
 \begin{tabular}{|c|c|r|}
 
@@ -142,7 +170,8 @@ $10^{15}$ & 53 & $1.11$ \\
 \label{tab}
 \end{table}%
 
-We recommend that the R developers replace the current algorithm for generating pseudo-random integers with the masking algorithm.
+We recommend that the R developers replace the current algorithm for generating pseudorandom integers with the masking algorithm
+and use pseudorandom bits directly to generate pseudorandom numbers with more than 32 bits of precision.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
