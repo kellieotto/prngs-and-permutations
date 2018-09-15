@@ -71,85 +71,112 @@ others.
 A textbook way to generate a random integer on 
 $\{1, \dots, m\}$ is to start with $X \sim U[0,1)$ and define $Y \equiv 1 + \lfloor mX \rfloor$. 
 If $X$ is truly uniform on $[0,1)$, $Y$ is then uniform on $\{1, \dots, m\}$.
-However, if $X$ has a discrete distribution derived by scaling a pseudorandom binary integer, 
-the resulting distribution is not uniformly distributed on 
+However, if $X$ has a discrete distribution derived by scaling a pseudorandom binary integer
+or floating-point number, 
+the resulting distribution is, in general, not uniformly distributed on 
 $\{1, \ldots, m \}$ even if the underlying pseudorandom number generator 
-(PRNG) is perfect (unless $m$ is a power of 2):
+(PRNG) is perfect.
+Theorem~\ref{thm:theorem_1} illustrates the problem.
 
 \begin{theorem}[\citet{knuth_art_1997}] % p.133
-Suppose $X$ is uniformly distributed on $w$-bit binary numbers, and
+\label{thm:theorem_1}
+Suppose $X$ is uniformly distributed on $w$-bit binary fractions, and
 let $Y_m \equiv 1 + \lfloor mX \rfloor$.
 Let $p_+(m) = \max_{1 \le k \le m} \Pr\{Y_m = k\}$ and $p_-(m) = \min_{1 \le k \le m} \Pr\{Y_m = k\}$.
 There exists $m < 2^w$ such that, to first order, 
 $p_+(m)/p_-(m) = 1 + m2^{-w+1}$.
 \end{theorem}
 
-The algorithm that R (Version 3.5.0) \citep{R_2018} uses to generate uniform random integers
-has this issue (albeit in a slightly more complicated form, because, depending on $m$,
-R uses pseudorandom binary integers of different lengths). 
+A better way to generate random elements of $\{1, \dots, m\}$ is to use pseudorandom bits directly,
+avoiding floating-point representation, multiplication, and the floor operator. 
+Integers between $0$ and $m-1$ can be represented with $\mu(m) \equiv \lceil \log_2(m-1) \rceil$ bits. 
+To generate a pseudorandom integer between $1$ and $m$, first generate 
+$\mu(m)$ pseudorandom bits (for instance, by taking the most significant $\mu(m)$ bits from the PRNG output, if $w \ge \mu(m)$, or by concatenating successive outputs of the PRNG and taking the
+first $\mu(m)$ bits of the result, if $w < \mu(m)$).
+Cast the result as a binary integer $M$.  
+If $M > m-1$, discard it and draw another $\mu(m)$ bits; otherwise, return $M+1$.\footnote{%
+   See \citet[p.114]{knuth_art_1997}
+}
+Unless $m = 2^{\mu(m)}$, this procedure is expected to discard some random draws---up to almost 
+half the draws if $m = 2^p + 1$ for some integer $p$.
+But if the input bits are IID Bernoulli(1/2), the output will be uniformly distributed on $\{1, \ldots, m\}$.
+This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) generates pseudorandom integers.\footnote{%
+  However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does 
+  something else biased: it finds the closest integer to $mX$, where $X$ is a binary fraction 
+  between 0 and 1.
+}
+
+The algorithm that R (Version 3.5.0) \citep{R_2018} uses to generate random integers
+has the issue pointed out in Theorem~\ref{thm:theorem_1} in a more complicated form, 
+because R uses a pseudo-random float at an intermediate step, rather than multiplying a binary fraction
+by $m$.
+The way the float is constructed depends on $m$.
 Because \texttt{sample} relies on random integers, it inherits the problem.
 
-R uses \texttt{unif\_rand} to generate pseudorandom numbers with word size at most $w=32$.
-To generate integers with a larger word size, R combines two $w$-bit integers to obtain an integer with 50 to 53 bits (depending the chosen PRNG). 
+When $m$ is small, R uses \texttt{unif\_rand} to generate pseudorandom floating-point 
+numbers $X$ on $[0, 1)$ starting from a $w$-bit random integer.
+Typically, $w=32$; for simplicity of exposition, we shall write as if that is universally true.
+The range of \texttt{unif\_rand} contains 
+(at most) $2^w$ values, which are approximately equi-spaced (but for the vagaries of converting
+a binary fraction into a floating-point number~\citep{goldberg91}).
 
-A better way to generate random elements of $\{1, \dots, m\}$ is to use pseudorandom bits directly. 
-The integer $m$ can be represented with $\mu = \lceil \log_2(m) \rceil$ bits. 
-To generate a pseudorandom integer between $1$ and $m$, first generate $\mu$ pseudorandom bits (for instance, by taking the most significant $\mu$ bits from the PRNG output).  
-If that binary number $M$ is larger than $m-1$, discard it.
-Repeat until the $\mu$ bits represent an integer $M$ that is less than $m$. 
-Return $M+1$.\footnote{%
-   See \citet{knuth_art_1997} p.114.
+When $m > 2^w-1$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
+   A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
+\texttt{sample2} uses the same method to generate pseudorandom integers.
 }
-This procedure might discard almost half the draws if $m$ is slightly larger than a power of $2$,
-but if the input bits were IID Bernoulli(1/2), the resulting integers will be uniformly distributed.
-This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) generates pseudorandom integers.\footnote{%
-However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does something else biased: it finds the closest integer to $mX$, where $X$ is a binary fraction between 0 and 1.
-}
+\texttt{ru} combines two floating point numbers, $R_1$ and $R_2$, each generated from a $2^w$-bit integer, 
+to produce the floating-point number $X$, as follows:
+the first float is multiplied by $U = 2^{25}-1$, added to the second float, and the result is divided by
+$2^w$:
+$$ X = \frac{\lfloor U R_1 \rfloor + R_2}{U}.$$
 
-The R \texttt{sample} function has a branch in its logic depending on the number of elements
-in the population to be sampled. 
-It uses \texttt{ru} when $m >= 2^{31}$ and \texttt{rand\_unif} when $m < 2^{31}$.\footnote{
-A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
-It uses the same flawed method of generating pseudorandom integers.
-}
-The nonuniformity of selection probabilities is largest when $m$ is just below $2^{31}$. 
-In that case, \texttt{sample} calls \texttt{unif\_rand}, which gives outputs with word size $w=32$. 
-The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2 billion. 
-Even if $m$ is close to 1 million, the ratio is about $1.0004$.
+The cardinality of the range of \texttt{ru} is certainly not larger than $2^{2w}$.
+The range of \texttt{ru} is unevenly spaced on $[0, 1)$
+because of how floating-point representation works, as we explain in greater detail
+below.
+The inhomogeneity can make the probability that $X \in [x, x+\delta) \subset [0, 1)$
+vary widely with $x$.
 
-When $m \ge 2^{31}$, R calls \texttt{ru()}  to produce a pseudorandom number with word length at least $w=50$ bits and at most $w=53$ bits (depending the chosen PRNG). 
-The algorithm uses two pseudorandom numbers, $r_1$ and $r_2$, to produce one with greater precision,
-$$ \texttt{ru}() = \frac{\lfloor U r_1 \rfloor + r_2}{U},$$
-
-\noindent where $U = 2^{25}-1$.
-In theory, this method would produce equidistant pseudorandom numbers on $[0, 1)$ by using the entire 53-bit mantissa of floating point numbers.
-It fails due to floating point arithmetic.
+For the way R generates random integers, the nonuniformity of the probabilities of 
+$\{1, \ldots, m\}$ is largest when $m$ is just below $2^{31}$. 
+The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2~billion. 
+Even if $m$ is close to 1~million, the ratio is about $1.0004$.
 
 To illustrate the issue, suppose that the PRNG generating $r_1$ and $r_2$ produces 4-bit integers and that floating point numbers 
-are represented in base 2 with 4 bits of precision.
+are represented in base~2 with 4~bits of precision.
 Let $U=2^4$.
-Imagine that $r_1 = 0$, represented as $0.000 \times 2^0$.
-Then the possible values of $\texttt{ru}$ would be equally spaced values, separated by a distance of $U^{-2}$.
-Instead, imagine $r_1$ is the largest value that the PRNG can generate,
+Suppose $R_1 = 0$, represented as $0.000 \times 2^0$.
+Then the possible values of $\texttt{ru}$ are equally spaced on $[0, 1/U]$, separated by $U^{-2}$.
+Suppose that $R_1$ is the largest value that the PRNG can generate,
 represented as $1.000 \times 2^{-1}$ in floating point.
-Multiplying by $U$ only changes the exponent from $-1$ to $3$.
-In floating point arithmetic, adding $\lfloor U r_1 \rfloor$ to small values of $r_2$ will result in underflow:
-for $r_2 < 1.000 \times 2^{0}$, $\lfloor U r_1 \rfloor + r_2 = \lfloor U r_1 \rfloor$. 
-Moreover, $\lfloor U r_1 \rfloor + 1.000 \times 2^{0} = \lfloor U r_1 \rfloor + 1.001 \times 2^{0} = \lfloor U r_1 \rfloor + 1.111 \times 2^{0}$ and so forth.
+Multiplying by $U$ changes the exponent from $-1$ to $3$.
+In floating point arithmetic, adding $\lfloor U R_1 \rfloor$ to small values of $R_2$ will result in underflow:
+for $R_2 < 1.000 \times 2^{0}$, $\lfloor U R_1 \rfloor + R_2 = \lfloor U R_1 \rfloor$. 
+Moreover, $\lfloor U R_1 \rfloor + 1.000 \times 2^{0} = \lfloor U R_1 \rfloor + 1.001 \times 2^{0} = \lfloor U R_1 \rfloor + 1.111 \times 2^{0}$ and so forth.
 In this case, $\texttt{ru}$ will give equally spaced values separated by a distance of $ U^{-1}$.
 % https://github.com/wch/r-source/blob/5a156a0865362bb8381dcd69ac335f5174a4f60c/src/main/RNG.c
+\todo{PBS. The way R does it, there won't be ``complete'' underflow unless $R_2$ is sufficiently small.
+There are 53 bits available to store what was originally 64 bits of information, but the conversion to
+floating point to produce each rand changes things, too.
+The fact that the possible values don't have equal probabilities doesn't directly translate into the uniformity/non-uniformity of the distribution on $[0, 1)$, because the spacing is non-uniform, too. 
+I think we need to work through one example carefully.
+The probability from the ``underflow'' bits will accumulate in the more significant bits. It isn't obvious to me how all this flows down to the uniformity of the resulting distribution, measured, e.g., by the probability of an interval of width $\Delta$. }
 
-Knuth's theorem no longer applies to the ratio of selection probabilities in the branch of the logic that calls $\texttt{ru}$, as values aren't truly uniformly distributed.
+Knuth's theorem no longer applies to the ratio of selection probabilities in the branch of the 
+logic that calls \texttt{ru}, as values aren't uniformly spaced.
 In fact, the nonuniformity of pseudorandom numbers might exacerbate the pseudorandom integer generation problem further.
 This could be avoided by using pseudorandom bits directly to gain precision, for example by
-concatenating two 32-bit pseudorandom numbers or by using a 64-bit PRNG (\cite{marsaglia_64bit_2004}).
+concatenating two 32-bit pseudorandom numbers or by using a 64-bit PRNG 
+(\cite{marsaglia_64bit_2004}).
+Because the Mersenne Twister (the default PRNG in R) is a 64-bit PRNG (unless R used the 32-bit version instead), implementing this in R should
+be straightforward.
 
 \begin{table}[h]
 \caption{Maximum ratio of selection probabilities for different population sizes $m$. 
-R constructs random integers using random binary integers with different numbers of bits (word lengths) depending on $m$:
-if $m < 2^{31}$, the word length is between $25$ and $32$, otherwise it may be up to $53$ bits.
-The maximum ratio of selection probabilities is based on Knuth's theorem; 
-for $m > 2^{31}$, the maximum may be even larger due to nonuniformity introduced by the \texttt{ru} function.
+  R constructs random integers using random binary integers with different numbers of bits (word lengths) depending on $m$:
+  if $m < 2^{31}$, the word length is between $25$ and $32$.
+  The maximum ratio of selection probabilities is based on Knuth's theorem; 
+  for $m > 2^{31}$, the maximum may be even larger due to nonuniformity introduced by the \texttt{ru} function.
 }
 \begin{center}
 \begin{tabular}{|c|c|r|}
@@ -160,9 +187,9 @@ Population size ($m$) & Word length ($w$) & Maximum ratio of selection probabili
 $10^6$ & 32 & 1.0004 \\
 $10^9$ & 32 & 1.466 \\
  $2^{31}-\epsilon$ & 32 & 2 \\
-$2^{31}+\epsilon$ & 53 & $1 + 2.3 \times 10^{-7}$ \\
-$10^{12}$ & 53 & $1.0001$ \\
-$10^{15}$ & 53 & $1.11$ \\
+% $2^{31}+\epsilon$ & 53 & $1 + 2.3 \times 10^{-7}$ \\
+% $10^{12}$ & 53 & $1.0001$ \\
+% $10^{15}$ & 53 & $1.11$ \\
 \hline
 
 \end{tabular}
