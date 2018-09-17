@@ -1,5 +1,6 @@
 \documentclass[12pt]{article}
-\usepackage[breaklinks=true]{hyperref}
+\usepackage{hyperref}
+\usepackage[anythingbreaks]{breakurl}
 \usepackage{color}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{natbib}
@@ -14,7 +15,7 @@
 \usepackage{indentfirst}
 
 
-\newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{assumption}{Assumption}
 
@@ -43,7 +44,7 @@
 \newcommand{\argmin}{\textrm{argmin}}
 \renewcommand{\baselinestretch}{1.5}
 
-\title{Simple Random Sampling: Not So Simple}
+\title{Random problems with R}
 \author{Kellie Ottoboni and Philip~B. Stark}
 \date{\today}
 \begin{document}
@@ -51,17 +52,21 @@
 
 
 \begin{abstract}
-R (Version 3.5.0) generates random integers between $1$ and $m$
+\noindent R (Version 3.5.1 patched) uses a version of the Mersenne Twister known to have
+a seeding problem, which was corrected by the authors of the Mersenne Twister in 2002.
+Updated C source code is available at \url{http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c}.
+R generates random integers between $1$ and $m$
 by multiplying random floats by $m$, taking the floor, and adding $1$ to the result.
-It is well known that quantization effects inherent in this approach result in a 
+Well-known quantization effects in this approach result in a 
 non-uniform distribution on $\{ 1, \ldots, m\}$.
 The difference, which depends on $m$, can be substantial.
 Because the \texttt{sample} function in R relies on generating random integers,
-random sampling in R is also biased.
-There is an easy fix, namely, construct random integers directly from random bits, rather than
+random sampling in R is biased.
+There is an easy fix: construct random integers directly from random bits, rather than
 multiplying a random float by $m$.
 That is the strategy taken in Python's \texttt{numpy.random.randint()} function, among
 others.
+Example source code in Python is available at \url{https://github.com/statlab/cryptorandom/blob/master/cryptorandom/cryptorandom.py} (see functions \texttt{getrandbits()} and \texttt{randbelow\_from\_randbits()}).
 \end{abstract}
 
 
@@ -71,7 +76,7 @@ others.
 A textbook way to generate a random integer on 
 $\{1, \dots, m\}$ is to start with $X \sim U[0,1)$ and define $Y \equiv 1 + \lfloor mX \rfloor$. 
 If $X$ is truly uniform on $[0,1)$, $Y$ is then uniform on $\{1, \dots, m\}$.
-However, if $X$ has a discrete distribution derived by scaling a pseudorandom binary integer
+But if $X$ has a discrete distribution derived by scaling a pseudorandom binary integer
 or floating-point number, 
 the resulting distribution is, in general, not uniformly distributed on 
 $\{1, \ldots, m \}$ even if the underlying pseudorandom number generator 
@@ -98,7 +103,7 @@ If $M > m-1$, discard it and draw another $\mu(m)$ bits; otherwise, return $M+1$
    See \citet[p.114]{knuth_art_1997}
 }
 Unless $m = 2^{\mu(m)}$, this procedure is expected to discard some random draws---up to almost 
-half the draws if $m = 2^p + 1$ for some integer $p$.
+half the draws if $m = 2^p+1$ for some integer $p$.
 But if the input bits are IID Bernoulli(1/2), the output will be uniformly distributed on $\{1, \ldots, m\}$.
 This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) generates pseudorandom integers.\footnote{%
   However, Python's built-in \texttt{random.choice()} (Versions 2.7 through 3.6) does 
@@ -106,7 +111,7 @@ This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) g
   between 0 and 1.
 }
 
-The algorithm that R (Version 3.5.0) \citep{R_2018} uses to generate random integers
+The algorithm that R (Version 3.5.1 patched) \citep{R_2018} uses to generate random integers
 has the issue pointed out in Theorem~\ref{thm:theorem_1} in a more complicated form, 
 because R uses a pseudo-random float at an intermediate step, rather than multiplying a binary fraction
 by $m$.
@@ -114,93 +119,38 @@ The way the float is constructed depends on $m$.
 Because \texttt{sample} relies on random integers, it inherits the problem.
 
 When $m$ is small, R uses \texttt{unif\_rand} to generate pseudorandom floating-point 
-numbers $X$ on $[0, 1)$ starting from a $w$-bit random integer.
-Typically, $w=32$; for simplicity of exposition, we shall write as if that is universally true.
+numbers $X$ on $[0, 1)$ starting from a $32$-bit random integer generated from the
+(obsolete version of the) Mersenne Twister algorithm \citep{mt1998}.
 The range of \texttt{unif\_rand} contains 
-(at most) $2^w$ values, which are approximately equi-spaced (but for the vagaries of converting
-a binary fraction into a floating-point number~\citep{goldberg91}).
+(at most) $2^32$ values, which are approximately equi-spaced (but for the vagaries of converting
+a binary number into a floating-point number~\citep{goldberg91}, which
+R does using floating point multiplication by 2.3283064365386963e-10).
 
 When $m > 2^w-1$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
    A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
 \texttt{sample2} uses the same method to generate pseudorandom integers.
 }
-\texttt{ru} combines two floating point numbers, $R_1$ and $R_2$, each generated from a $2^w$-bit integer, 
+\texttt{ru} combines two floating point numbers, $R_1$ and $R_2$, each generated from a 32-bit integer, 
 to produce the floating-point number $X$, as follows:
 the first float is multiplied by $U = 2^{25}-1$, added to the second float, and the result is divided by
 $U$:
 $$ X = \frac{\lfloor U R_1 \rfloor + R_2}{U}.$$
 
-The cardinality of the range of \texttt{ru} is certainly not larger than $2^{2w}$.
+The cardinality of the range of \texttt{ru} is certainly not larger than $2^{64}$.
 The range of \texttt{ru} is unevenly spaced on $[0, 1)$
-because of how floating-point representation works, as we explain in greater detail
-below.
+because of how floating-point representation works.
 The inhomogeneity can make the probability that $X \in [x, x+\delta) \subset [0, 1)$
 vary widely with $x$.
 
 For the way R generates random integers, the nonuniformity of the probabilities of 
 $\{1, \ldots, m\}$ is largest when $m$ is just below $2^{31}$. 
-The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2~billion. 
+The maximum ratio of selection probabilities approaches $2$ as $m$
+approaches $2^{31}$, about 2~billion. 
 For $m$ close to 1~million, the ratio is about $1.0004$.
 
-To illustrate the issue in a simpler case, suppose that $R_1$ and $R_2$ are 4-bit random
-integers and that floating point numbers 
-are represented in base~2 with 4~bits of precision.
-Let $U=2^4$.
-
-Suppose $R_1 = 0$, represented as $0.000 \times 2^0$; this has probability $1/(2^5-1)$.
-Then the $2^5-1$ possible values of $\texttt{ru}$ are equally spaced on $[0, 1/U]$, separated by $U^{-2}$;
-each will occur with probability
-Suppose that $R_1$ is the largest value that the PRNG can generate---namely, 1---represented as $1.000 \times 2^{-1}$ in floating point.
-Multiplying by $U$ changes the exponent from $-1$ to $3$.
-In floating point arithmetic, adding $\lfloor U R_1 \rfloor$ to small values of $R_2$ will result in underflow:
-for $R_2 < 1.000 \times 2^{0}$, $\lfloor U R_1 \rfloor + R_2 = \lfloor U R_1 \rfloor$. 
-Moreover, $\lfloor U R_1 \rfloor + 1.000 \times 2^{0} = \lfloor U R_1 \rfloor + 1.001 \times 2^{0} = \lfloor U R_1 \rfloor + 1.111 \times 2^{0}$ and so forth.
-In this case, $\texttt{ru}$ will give equally spaced values separated by a distance of $ U^{-1}$.
-% https://github.com/wch/r-source/blob/5a156a0865362bb8381dcd69ac335f5174a4f60c/src/main/RNG.c
-\todo{PBS. The way R does it, there won't be ``complete'' underflow unless $R_2$ is sufficiently small.
-There are 53 bits available to store what was originally 64 bits of information, but the conversion to
-floating point to produce each rand changes things, too.
-The fact that the possible values don't have equal probabilities doesn't directly translate into the uniformity/non-uniformity of the distribution on $[0, 1)$, because the spacing is non-uniform, too. 
-I think we need to work through one example carefully.
-The probability from the ``underflow'' bits will accumulate in the more significant bits. It isn't obvious to me how all this flows down to the uniformity of the resulting distribution, measured, e.g., by the probability of an interval of width $\Delta$. }
-
-Knuth's theorem no longer applies to the ratio of selection probabilities in the branch of the 
-logic that calls \texttt{ru}, as values aren't uniformly spaced.
-In fact, the nonuniformity of pseudorandom numbers might exacerbate the pseudorandom integer generation problem further.
-This could be avoided by using pseudorandom bits directly to gain precision, for example by
-concatenating two 32-bit pseudorandom numbers or by using a 64-bit PRNG 
-(\cite{marsaglia_64bit_2004}).
-Because the Mersenne Twister (the default PRNG in R) is a 64-bit PRNG (unless R used the 32-bit version instead), implementing this in R should
-be straightforward.
-
-\begin{table}[h]
-\caption{Maximum ratio of selection probabilities for different population sizes $m$. 
-  R constructs random integers using random binary integers with different numbers of bits (word lengths) depending on $m$:
-  if $m < 2^{31}$, the word length is between $25$ and $32$.
-  The maximum ratio of selection probabilities is based on Knuth's theorem; 
-  for $m > 2^{31}$, the maximum may be even larger due to nonuniformity introduced by the \texttt{ru} function.
-}
-\begin{center}
-\begin{tabular}{|c|c|r|}
-
-\hline
-Population size ($m$) & Word length ($w$) & Maximum ratio of selection probabilities\\
-\hline 
-$10^6$ & 32 & 1.0004 \\
-$10^9$ & 32 & 1.466 \\
- $2^{31}-\epsilon$ & 32 & 2 \\
-% $2^{31}+\epsilon$ & 53 & $1 + 2.3 \times 10^{-7}$ \\
-% $10^{12}$ & 53 & $1.0001$ \\
-% $10^{15}$ & 53 & $1.11$ \\
-\hline
-
-\end{tabular}
-\end{center}
-\label{tab}
-\end{table}%
-
-We recommend that the R developers replace the current algorithm for generating pseudorandom integers with the masking algorithm
-and use pseudorandom bits directly to generate pseudorandom numbers with more than 32 bits of precision.
+We recommend that the R developers replace the obsolete (1997) version of the Mersenne Twister code with the current (2002) version, and replace the current algorithm for generating 
+pseudorandom integers in $\{1, \ldots, m\}$ with the algorithm based on generating a random bit string large enough to represent $m$ and discarding integers that are larger than $m$.
+The resulting code would be simpler and more accurate. 
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
