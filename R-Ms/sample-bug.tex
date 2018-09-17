@@ -127,7 +127,7 @@ When $m > 2^w-1$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
 \texttt{ru} combines two floating point numbers, $R_1$ and $R_2$, each generated from a $2^w$-bit integer, 
 to produce the floating-point number $X$, as follows:
 the first float is multiplied by $U = 2^{25}-1$, added to the second float, and the result is divided by
-$2^w$:
+$U$:
 $$ X = \frac{\lfloor U R_1 \rfloor + R_2}{U}.$$
 
 The cardinality of the range of \texttt{ru} is certainly not larger than $2^{2w}$.
@@ -140,15 +140,17 @@ vary widely with $x$.
 For the way R generates random integers, the nonuniformity of the probabilities of 
 $\{1, \ldots, m\}$ is largest when $m$ is just below $2^{31}$. 
 The maximum ratio of selection probabilities approaches $2$ as $m$ increases to the cutoff $2^{31}$, or about 2~billion. 
-Even if $m$ is close to 1~million, the ratio is about $1.0004$.
+For $m$ close to 1~million, the ratio is about $1.0004$.
 
-To illustrate the issue, suppose that the PRNG generating $r_1$ and $r_2$ produces 4-bit integers and that floating point numbers 
+To illustrate the issue in a simpler case, suppose that $R_1$ and $R_2$ are 4-bit random
+integers and that floating point numbers 
 are represented in base~2 with 4~bits of precision.
 Let $U=2^4$.
-Suppose $R_1 = 0$, represented as $0.000 \times 2^0$.
-Then the possible values of $\texttt{ru}$ are equally spaced on $[0, 1/U]$, separated by $U^{-2}$.
-Suppose that $R_1$ is the largest value that the PRNG can generate,
-represented as $1.000 \times 2^{-1}$ in floating point.
+
+Suppose $R_1 = 0$, represented as $0.000 \times 2^0$; this has probability $1/(2^5-1)$.
+Then the $2^5-1$ possible values of $\texttt{ru}$ are equally spaced on $[0, 1/U]$, separated by $U^{-2}$;
+each will occur with probability
+Suppose that $R_1$ is the largest value that the PRNG can generate---namely, 1---represented as $1.000 \times 2^{-1}$ in floating point.
 Multiplying by $U$ changes the exponent from $-1$ to $3$.
 In floating point arithmetic, adding $\lfloor U R_1 \rfloor$ to small values of $R_2$ will result in underflow:
 for $R_2 < 1.000 \times 2^{0}$, $\lfloor U R_1 \rfloor + R_2 = \lfloor U R_1 \rfloor$. 
