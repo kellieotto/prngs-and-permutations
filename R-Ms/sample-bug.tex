@@ -122,17 +122,17 @@ When $m$ is small, R uses \texttt{unif\_rand} to generate pseudorandom floating-
 numbers $X$ on $[0, 1)$ starting from a $32$-bit random integer generated from the
 (obsolete version of the) Mersenne Twister algorithm \citep{mt1998}.
 The range of \texttt{unif\_rand} contains 
-(at most) $2^32$ values, which are approximately equi-spaced (but for the vagaries of converting
+(at most) $2^{32}$ values, which are approximately equi-spaced (but for the vagaries of converting
 a binary number into a floating-point number~\citep{goldberg91}, which
 R does using floating point multiplication by 2.3283064365386963e-10).
 
-When $m > 2^w-1$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
+When $m > 2^{31}$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
    A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
 \texttt{sample2} uses the same method to generate pseudorandom integers.
 }
 \texttt{ru} combines two floating point numbers, $R_1$ and $R_2$, each generated from a 32-bit integer, 
 to produce the floating-point number $X$, as follows:
-the first float is multiplied by $U = 2^{25}-1$, added to the second float, and the result is divided by
+the first float is multiplied by $U = 2^{25}$, added to the second float, and the result is divided by
 $U$:
 $$ X = \frac{\lfloor U R_1 \rfloor + R_2}{U}.$$
 
@@ -144,9 +144,9 @@ vary widely with $x$.
 
 For the way R generates random integers, the nonuniformity of the probabilities of 
 $\{1, \ldots, m\}$ is largest when $m$ is just below $2^{31}$. 
-The maximum ratio of selection probabilities approaches $2$ as $m$
+The upper bound on the ratio of selection probabilities approaches $2$ as $m$
 approaches $2^{31}$, about 2~billion. 
-For $m$ close to 1~million, the ratio is about $1.0004$.
+For $m$ close to 1~million, the upper bound is about $1.0004$.
 
 We recommend that the R developers replace the obsolete (1997) version of the Mersenne Twister code with the current (2002) version, and replace the current algorithm for generating 
 pseudorandom integers in $\{1, \ldots, m\}$ with the algorithm based on generating a random bit string large enough to represent $m$ and discarding integers that are larger than $m$.
