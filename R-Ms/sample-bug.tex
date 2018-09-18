@@ -65,7 +65,8 @@ Because the \texttt{sample} function in R relies on generating random integers,
 random sampling in R is biased.
 There is an easy fix: construct random integers directly from random bits, rather than
 multiplying a random float by $m$.
-That is the strategy taken in Python's \texttt{numpy.random.randint()} function, among
+That is the strategy taken in Python's \texttt{numpy.random.randint()} function, 
+and recommended by the authors of the Mersenne Twister algorithm, among
 others.
 Example source code in Python is available at \url{https://github.com/statlab/cryptorandom/blob/master/cryptorandom/cryptorandom.py} (see functions \texttt{getrandbits()} and \texttt{randbelow\_from\_randbits()}).
 \end{abstract}
@@ -101,7 +102,9 @@ $\mu(m)$ pseudorandom bits (for instance, by taking the most significant $\mu(m)
 first $\mu(m)$ bits of the result, if $w < \mu(m)$).
 Cast the result as a binary integer $M$.  
 If $M > m-1$, discard it and draw another $\mu(m)$ bits; otherwise, return $M+1$.\footnote{%
-   See \citet[p.114]{knuth_art_1997}
+   See \citet[p.114]{knuth_art_1997}.
+   This is also the approach recommended by the authors of the Mersenne Twister. See
+   \url{http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/efaq.html}, last accessed 18~September 2018.
 }
 Unless $m = 2^{\mu(m)}$, this procedure is expected to discard some random draws---up to almost 
 half the draws if $m = 2^p+1$ for some integer $p$.
@@ -113,6 +116,7 @@ This is how the Python function \texttt{numpy.random.randint()} (Version 1.14) g
 }
 
 The algorithm that R (Version 3.5.1 patched) \citep{R_2018} uses to generate random integers
+in \texttt{R\_unif\_index()} (in \texttt{RNG.c})
 has the issue pointed out in Theorem~\ref{thm:theorem_1} in a more complicated form, 
 because R uses a pseudorandom float at an intermediate step, rather than multiplying a binary fraction
 by $m$.
@@ -127,7 +131,8 @@ The range of \texttt{unif\_rand} contains
 a binary number into a floating-point number~\citep{goldberg91}, which
 R does using floating-point multiplication by 2.3283064365386963e-10).
 
-When $m > 2^{31}$, R calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
+When $m > 2^{31}$, \texttt{R\_unif\_index()}
+calls \texttt{ru} instead of \texttt{unif\_rand}.\footnote{
    A different function, \texttt{sample2}, is called when $m > 10^7$ and $k < m/2$.
 \texttt{sample2} uses the same method to generate pseudorandom integers.
 }
@@ -137,22 +142,28 @@ the first float is multiplied by $U = 2^{25}$, added to the second float, and th
 $U$:
 $$ X = \frac{\lfloor U R_1 \rfloor + R_2}{U}.$$
 
+The relevant code is in \texttt{RNG.c}.
+
 The cardinality of the range of \texttt{ru} is certainly not larger than $2^{64}$.
 The range of \texttt{ru} is unevenly spaced on $[0, 1)$
 because of how floating-point representation works.
 The inhomogeneity can make the probability that $X \in [x, x+\delta) \subset [0, 1)$
 vary widely with $x$.
 
-For the way R generates random integers, the non-uniformity of the probabilities of 
+For the way \texttt{R\_unif\_index()} generates random integers, the non-uniformity of the probabilities of 
 $\{1, \ldots, m\}$ is largest when $m$ is just below $2^{31}$. 
 The upper bound on the ratio of selection probabilities approaches $2$ as $m$
 approaches $2^{31}$, about 2~billion. 
 For $m$ close to 1~million, the upper bound is about $1.0004$.
 
 We recommend that the R developers replace the obsolete (1997) version of the Mersenne Twister code with the current (2002) version, 
-and replace the current algorithm for generating pseudorandom integers in $\{1, \ldots, m\}$ with the algorithm based on generating a 
+and replace the algorithm in \texttt{R\_unif\_index()} with the algorithm based on generating a 
 random bit string large enough to represent $m$ and discarding integers that are larger than $m$.
 The resulting code would be simpler and more accurate. 
+Other routines that generate random integers using the multiply-and-floor method \texttt{(int) unif\_rand() * n}, 
+for instance, \texttt{walker\_ProbSampleReplace()} in \texttt{random.c},
+should also be updated to use an unbiased integer generator (e.g., to call the new 
+version of \texttt{R\_unif\_index()}).
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
